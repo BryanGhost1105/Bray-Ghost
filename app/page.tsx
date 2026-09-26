@@ -55,6 +55,8 @@ export default async function Page() {
         `select id, niche_id, business_name, address, website, email, place_id,
                 status, seo_score, seo_flags, scraped_content, generated_subject,
                 generated_body, followup_subject, followup_body,
+                initial_approval_status, initial_approved_at, initial_approved_by,
+                followup_approval_status, followup_approved_at, followup_approved_by,
                 initial_sent_at, initial_opened_at, followup_sent_at, followup_opened_at,
                 replied_at, created_at, mobile_score, performance_score, design_score, ux_score,
                 technical_score, opportunity_score, outreach_angle, outreach_reason,

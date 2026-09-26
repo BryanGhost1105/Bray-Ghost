@@ -53,6 +53,7 @@ async function claimLead(leadId?: string): Promise<ClaimedLead | null> {
          SELECT id FROM leads
          WHERE ($2::uuid IS NULL OR id = $2::uuid)
          AND status = 'generated'
+         AND initial_approval_status = 'approved'
          AND (seo_score IS NULL OR seo_score < $1)
          AND initial_sent_at IS NULL
          AND replied_at IS NULL

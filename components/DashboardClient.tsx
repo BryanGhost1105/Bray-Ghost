@@ -49,6 +49,12 @@ export interface Lead {
   audit_details: AuditDetails | null
   generated_subject: string | null
   generated_body: string | null
+  initial_approval_status: string
+  initial_approved_at: string | null
+  initial_approved_by: string | null
+  followup_approval_status: string
+  followup_approved_at: string | null
+  followup_approved_by: string | null
   followup_subject: string | null
   followup_body: string | null
   initial_sent_at: string | null
@@ -120,6 +126,7 @@ function getLeadNextAction(lead: Lead): string {
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
   if (!lead.generated_body) return 'Generate pitch for review'
+  if (!lead.initial_sent_at && lead.initial_approval_status !== 'approved') return 'Approve pitch for sending'
   if (!lead.initial_sent_at) return 'Review pitch before sending'
   return lead.followup_sent_at ? 'Follow-up sent' : 'Monitor for reply'
 }
@@ -484,17 +491,17 @@ export default function DashboardClient({
 
   const handleBulkSend = async () => {
     if (selectedLeadIds.length === 0) return
-    if (!confirm(`Dispatch outreach emails to all ${selectedLeadIds.length} selected leads now? (Leads missing pitch will be auto-generated on the fly)`)) return
+    if (!confirm(`Approve generated drafts for ${selectedLeadIds.length} selected leads? No email will be sent by this action.`)) return
     setBulkActionLoading(true)
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'send_bulk', leadIds: selectedLeadIds }),
+        body: JSON.stringify({ action: 'approve_bulk', leadIds: selectedLeadIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Bulk send failed')
-      alert(data.message || 'Bulk dispatch completed!')
+      alert(data.message || 'Selected drafts approved for sending.')
       setSelectedLeadIds([])
       router.refresh()
     } catch (err: unknown) {
@@ -599,21 +606,20 @@ export default function DashboardClient({
     }
   }
 
-  // Send a single lead's email immediately
+  // Approve a single generated draft. Approval does not dispatch email.
   const [sendingLeadId, setSendingLeadId] = useState<string | null>(null)
   const handleSendSingle = async (leadId: string) => {
-    if (!confirm('Send this email now?')) return
+    if (!confirm('Approve this generated email for sending? No email will be sent by this action.')) return
     setSendingLeadId(leadId)
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'send_single', leadId }),
+        body: JSON.stringify({ action: 'approve_send', leadId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Send failed')
-      alert(data.message || 'Email sent!')
-      if (expandedLeadId === leadId) setExpandedLeadId(null)
+      alert(data.message || 'Email approved for sending.')
       router.refresh()
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Send failed')
@@ -1437,7 +1443,7 @@ export default function DashboardClient({
                       onClick={handleBulkSend}
                       disabled={bulkActionLoading}
                       className="px-3 py-1 bg-[#6dc86d]/10 hover:bg-[#6dc86d]/20 text-[#6dc86d] border border-[#6dc86d]/30 rounded-md transition-all flex items-center gap-1.5 disabled:opacity-40"
-                      title="Dispatch personalized outreach emails to selected leads"
+                      title="Approve generated drafts for selected leads"
                     >
                       <Send size={14} />
                       <span>Send Outreach Selected ({selectedLeadIds.length})</span>
@@ -1653,13 +1659,13 @@ export default function DashboardClient({
                                 >
                                   Intel
                                 </button>
-                                {lead.email ? (
+                                {lead.email && lead.generated_body && !lead.initial_sent_at ? (
                                   <button
                                     type="button"
                                     onClick={() => handleSendSingle(lead.id)}
                                     disabled={sendingLeadId === lead.id}
                                     className="p-1 rounded-md text-[11px] font-mono text-[#6dc86d] border border-[#6dc86d]/30 hover:bg-[#6dc86d]/20 transition-all disabled:opacity-40"
-                                    title="Send Personalized Outreach Email Now (Auto-generates pitch if needed)"
+                                    title="Approve this generated draft for sending"
                                   >
                                     {sendingLeadId === lead.id ? (
                                       <span className="w-3.5 h-3.5 border-2 border-[#6dc86d] border-t-transparent rounded-full animate-spin inline-block" />
@@ -2246,21 +2252,21 @@ export default function DashboardClient({
                     <span>Re-Generate</span>
                   </button>
                 )}
-                {/* Send Now — available for any lead with an email (auto-generates pitch if needed) */}
-                {selectedLead.email && (
+                {/* Approval gate — approval never sends an unreviewed draft. */}
+                {selectedLead.email && selectedLead.generated_body && !selectedLead.initial_sent_at && (
                   <button
                     type="button"
                     onClick={() => handleSendSingle(selectedLead.id)}
                     disabled={sendingLeadId === selectedLead.id}
                     className="px-3 py-1.5 bg-[#6dc86d]/10 hover:bg-[#6dc86d]/20 text-[#6dc86d] rounded-lg text-xs font-mono border border-[#6dc86d]/30 transition-colors flex items-center gap-1.5 disabled:opacity-40"
-                    title="Send Personalized Outreach Email Now (Auto-generates pitch if needed)"
+                    title="Approve this reviewed draft for a later approved-send run"
                   >
                     {sendingLeadId === selectedLead.id ? (
                       <span className="w-3 h-3 border-2 border-[#6dc86d] border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <Send size={13} />
                     )}
-                    <span>Send Now</span>
+                    <span>{selectedLead.initial_approval_status === 'approved' ? 'Approved' : 'Approve for Sending'}</span>
                   </button>
                 )}
                 {/* Enrich Email — for leads missing an email */}
@@ -2638,7 +2644,7 @@ export default function DashboardClient({
                       onClick={handleBulkSend}
                       disabled={bulkActionLoading}
                       className="px-2.5 py-1 rounded bg-[#6dc86d]/10 hover:bg-[#6dc86d]/20 text-[#6dc86d] border border-[#6dc86d]/30 flex items-center gap-1.5 disabled:opacity-40"
-                      title="Dispatch personalized outreach emails to selected leads"
+                      title="Approve generated drafts for selected leads"
                     >
                       <Send size={12} />
                       <span>Send Outreach ({selectedLeadIds.length})</span>
@@ -2841,13 +2847,13 @@ export default function DashboardClient({
                                 >
                                   Intel
                                 </button>
-                                {lead.status === 'generated' && lead.email && (
+                                    {lead.status === 'generated' && lead.email && lead.generated_body && !lead.initial_sent_at && (
                                   <button
                                     type="button"
                                     onClick={() => handleSendSingle(lead.id)}
                                     disabled={sendingLeadId === lead.id}
                                     className="p-1 rounded text-[11px] text-[#6dc86d] border border-[#6dc86d]/30 hover:bg-[#6dc86d]/20 transition-all disabled:opacity-40"
-                                    title="Send Email Now"
+                                    title="Approve this generated draft for sending"
                                   >
                                     <Send size={12} />
                                   </button>

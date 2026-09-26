@@ -266,6 +266,53 @@ export async function POST(request: Request) {
       })
     }
 
+    if (action === 'approve_send' || action === 'approve_bulk') {
+      const requestedIds = action === 'approve_send' ? [leadId] : body.leadIds
+      if (!Array.isArray(requestedIds) || requestedIds.length === 0 || requestedIds.some((id) => typeof id !== 'string')) {
+        return NextResponse.json({ success: false, error: action === 'approve_send' ? 'leadId is required.' : 'leadIds array is required.' }, { status: 400 })
+      }
+
+      const approved: string[] = []
+      const skipped: string[] = []
+      for (const id of requestedIds) {
+        const result = await pool.query(
+          `UPDATE leads
+           SET initial_approval_status = 'approved',
+               initial_approved_at = NOW(),
+               initial_approved_by = 'internal-operator'
+           WHERE id = $1
+             AND status = 'generated'
+             AND generated_subject IS NOT NULL
+             AND generated_body IS NOT NULL
+             AND initial_sent_at IS NULL
+             AND replied_at IS NULL
+             AND status <> 'unsubscribed'
+           RETURNING id, business_name`,
+          [id]
+        )
+        if (result.rows[0]) approved.push(result.rows[0].business_name)
+        else skipped.push(String(id))
+      }
+
+      return NextResponse.json({
+        success: true,
+        approvedCount: approved.length,
+        skippedCount: skipped.length,
+        approved,
+        skipped,
+        message: approved.length
+          ? `${approved.length} draft${approved.length === 1 ? '' : 's'} approved for sending. No email was sent by this action.`
+          : 'No eligible generated drafts were approved.',
+      })
+    }
+
+    if (action === 'send_bulk') {
+      return NextResponse.json(
+        { success: false, error: 'Bulk dispatch is disabled. Approve generated drafts individually or with approve_bulk, then run the approved-send step.' },
+        { status: 410 }
+      )
+    }
+
     if (action === 'send_single') {
       if (!leadId) {
         return NextResponse.json({ success: false, error: 'leadId is required.' }, { status: 400 })

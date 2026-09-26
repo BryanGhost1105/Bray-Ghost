@@ -140,6 +140,9 @@ ${quickWinsSummary}
     `UPDATE leads SET
        generated_subject = $1,
        generated_body = $2,
+       initial_approval_status = 'pending',
+       initial_approved_at = NULL,
+       initial_approved_by = NULL,
        status = 'generated'
      WHERE id = $3`,
     [emailData.subject, emailData.body, leadId]

@@ -50,6 +50,7 @@ export async function sendFollowUps(
          WHERE status = 'sent'
            AND initial_sent_at <= NOW() - $1::interval
            AND followup_sent_at IS NULL
+           AND followup_approval_status = 'approved'
            AND replied_at IS NULL
            AND (followup_claimed_at IS NULL OR followup_claimed_at < NOW() - INTERVAL '20 minutes')
            AND (followup_next_attempt_at IS NULL OR followup_next_attempt_at <= NOW())
