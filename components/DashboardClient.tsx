@@ -66,6 +66,17 @@ export interface Lead {
   created_at: string
 }
 
+export interface LeadInteraction {
+  id: string
+  lead_id: string
+  channel: string
+  outcome: string
+  note: string | null
+  occurred_at: string
+  next_action_at: string | null
+  created_at: string
+}
+
 export interface Niche {
   id: string
   label: string
@@ -95,6 +106,10 @@ export interface Stats {
   avg_opportunity: number
   avg_seo: number
   avg_mobile: number
+  conversations: number
+  walkthroughs: number
+  proposals: number
+  paid_pilots: number
 }
 
 export interface ErrorRecord {
@@ -110,6 +125,7 @@ interface DashboardClientProps {
   initialSettings: Settings
   initialNiches: Niche[]
   initialLeads: Lead[]
+  initialInteractions: LeadInteraction[]
   initialErrors: ErrorRecord[]
   stats: Stats
   statusCounts: Record<string, number>
@@ -304,6 +320,7 @@ export default function DashboardClient({
   initialSettings,
   initialNiches,
   initialLeads,
+  initialInteractions,
   initialErrors,
   stats,
   statusCounts,
@@ -416,6 +433,15 @@ export default function DashboardClient({
 
   // Copy feedback
   const [copiedField, setCopiedField] = useState<'subject' | 'body' | null>(null)
+
+  // Commercial validation evidence
+  const [interactionForm, setInteractionForm] = useState({
+    channel: 'email',
+    outcome: 'attempted',
+    note: '',
+    nextActionAt: '',
+  })
+  const [interactionLoading, setInteractionLoading] = useState(false)
 
   const handleToggleSelectLead = (leadId: string) => {
     setSelectedLeadIds((prev) =>
@@ -761,6 +787,25 @@ export default function DashboardClient({
       }
     } catch {
       // ignore
+    }
+  }
+
+  const handleAddInteraction = async (leadId: string) => {
+    setInteractionLoading(true)
+    try {
+      const res = await fetch('/api/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, ...interactionForm }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not record interaction')
+      setInteractionForm({ channel: 'email', outcome: 'attempted', note: '', nextActionAt: '' })
+      router.refresh()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Could not record interaction')
+    } finally {
+      setInteractionLoading(false)
     }
   }
 
@@ -1381,6 +1426,36 @@ export default function DashboardClient({
             <span>Avg Mobile: <strong className="text-[#c8c4bc]">{stats.avg_mobile}</strong></span>
           </div>
         )}
+
+        <div className="bg-[#1a1a1a] border border-[#c8c4bc15] rounded-xl p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-xs font-semibold text-white">Commercial Validation Scorecard</h3>
+              <p className="text-[11px] text-[#c8c4bc60] mt-1">Evidence toward the first paid pilot. Record every real interaction from the Intel view.</p>
+            </div>
+            <span className="text-[10px] font-mono text-[#c8a44b]">Target: 30 prospects · 10 conversations · 3 walkthroughs · 1 pilot</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              ['Prospects', stats.total, 30],
+              ['Conversations', stats.conversations, 10],
+              ['Walkthroughs', stats.walkthroughs, 3],
+              ['Paid pilots', stats.paid_pilots, 1],
+            ].map(([label, value, target]) => (
+              <div key={String(label)} className="bg-[#141414] border border-[#c8c4bc12] rounded-lg p-3">
+                <div className="text-[10px] text-[#c8c4bc55]">{label}</div>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-xl font-mono text-white">{value}</span>
+                  <span className="text-[10px] font-mono text-[#c8c4bc45]">/ {target}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3 mt-3 text-[10px] font-mono text-[#c8c4bc55]">
+            <span>Proposals: <strong className="text-[#c8c4bc]">{stats.proposals}</strong></span>
+            <span>Recorded interactions: <strong className="text-[#c8c4bc]">{initialInteractions.length}</strong></span>
+          </div>
+        </div>
 
         {/* Navigation Tabs */}
         <div className="border-b border-[#c8c4bc12]">
@@ -2299,6 +2374,86 @@ export default function DashboardClient({
                 </div>
               </div>
             )}
+
+            <div className="space-y-3 border-t border-[#c8c4bc12] pt-4">
+              <div>
+                <h4 className="text-[11px] font-mono text-[#c8a44b] uppercase tracking-wider">Validation interaction log</h4>
+                <p className="text-[11px] text-[#c8c4bc55] mt-1">Record the channel, outcome, objection, and next step. This does not send anything.</p>
+              </div>
+              <div className="bg-[#141414] border border-[#c8c4bc12] rounded-lg p-3 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={interactionForm.channel}
+                    onChange={(e) => setInteractionForm((current) => ({ ...current, channel: e.target.value }))}
+                    className="px-2.5 py-2 bg-[#1c1c1c] border border-[#c8c4bc20] rounded-md text-xs text-[#c8c4bc]"
+                    aria-label="Interaction channel"
+                  >
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="phone">Phone</option>
+                    <option value="in_person">In person</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <select
+                    value={interactionForm.outcome}
+                    onChange={(e) => setInteractionForm((current) => ({ ...current, outcome: e.target.value }))}
+                    className="px-2.5 py-2 bg-[#1c1c1c] border border-[#c8c4bc20] rounded-md text-xs text-[#c8c4bc]"
+                    aria-label="Interaction outcome"
+                  >
+                    <option value="attempted">Attempted contact</option>
+                    <option value="permission_granted">Permission granted</option>
+                    <option value="conversation">Conversation</option>
+                    <option value="audit_walkthrough">Audit walkthrough</option>
+                    <option value="proposal_sent">Proposal sent</option>
+                    <option value="paid_pilot">Paid pilot</option>
+                    <option value="no_response">No response</option>
+                    <option value="not_fit">Not a fit</option>
+                    <option value="unsubscribe">Unsubscribe / do not contact</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <textarea
+                  value={interactionForm.note}
+                  onChange={(e) => setInteractionForm((current) => ({ ...current, note: e.target.value }))}
+                  placeholder="What happened? Include objection, decision-maker, or promised next step."
+                  rows={3}
+                  className="w-full px-2.5 py-2 bg-[#1c1c1c] border border-[#c8c4bc20] rounded-md text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] resize-y"
+                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="date"
+                    value={interactionForm.nextActionAt}
+                    onChange={(e) => setInteractionForm((current) => ({ ...current, nextActionAt: e.target.value }))}
+                    className="px-2.5 py-2 bg-[#1c1c1c] border border-[#c8c4bc20] rounded-md text-xs text-[#c8c4bc]"
+                    aria-label="Next action date"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddInteraction(selectedLead.id)}
+                    disabled={interactionLoading}
+                    className="px-3 py-2 bg-[#8b3a2a] hover:bg-[#9e4331] rounded-md text-xs font-mono text-[#c8c4bc] disabled:opacity-40"
+                  >
+                    {interactionLoading ? 'Saving…' : 'Record interaction'}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                {initialInteractions.filter((item) => item.lead_id === selectedLead.id).slice(0, 8).map((item) => (
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 bg-[#141414] border border-[#c8c4bc0e] rounded-md px-3 py-2 text-[11px] font-mono">
+                    <div>
+                      <span className="text-white capitalize">{item.outcome.replaceAll('_', ' ')}</span>
+                      <span className="text-[#c8c4bc45]"> · {item.channel.replaceAll('_', ' ')}</span>
+                      {item.note && <p className="text-[#c8c4bc70] mt-1 whitespace-pre-wrap">{item.note}</p>}
+                    </div>
+                    <span className="text-[#c8c4bc45] shrink-0">{new Date(item.occurred_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {initialInteractions.filter((item) => item.lead_id === selectedLead.id).length === 0 && (
+                  <p className="text-[11px] text-[#c8c4bc40]">No interactions recorded yet.</p>
+                )}
+              </div>
+            </div>
 
             {/* Intel Modal Footer Action Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#c8c4bc12]">

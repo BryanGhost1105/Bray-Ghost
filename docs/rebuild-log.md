@@ -71,7 +71,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - [ ] Rewrite audit output in business language
 - [ ] Require one checkable fact in every draft
 - [ ] Use permission-based first contact
-- [ ] Track objections and outcomes
+- [x] Track objections and outcomes
 
 ### Phase 3 — Manual validation
 
@@ -138,6 +138,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Split follow-up handling into draft preparation, explicit human approval, and dispatch. The send worker now refuses to generate missing follow-up content while sending.
 - Added follow-up approval/revocation actions and a dashboard preview/control for prepared follow-ups.
 - Updated the scheduled pipeline so pending follow-up drafts are preparation work, while only complete approved follow-ups are dispatch work.
+- Added a persistent `lead_interactions` table, API, dashboard form, and validation scorecard for attempts, conversations, walkthroughs, proposals, and paid pilots.
+- Added the permission-first channel scripts and outcome definitions in `docs/validation/outreach-playbook.md`.
+- Applied and verified the live validation-table migration. The verifier reported all approval columns present and `lead_interactions` present.
 - Verification: `npm run lint` (0 errors, existing unused-variable warnings), `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed.
 - Runtime smoke test was attempted, but local Next development server database initialization returned a connection `ErrorEvent`; no live lead state was changed by that failed request.
 - Next action: manually re-check the strongest observations on mobile, record decision-maker/channel evidence, then start permission-based conversations one at a time.

@@ -105,10 +105,22 @@ async function initDb() {
         created_at timestamptz not null default now()
       );
 
+      create table if not exists lead_interactions (
+        id uuid primary key default gen_random_uuid(),
+        lead_id uuid not null references leads(id) on delete cascade,
+        channel text not null,
+        outcome text not null,
+        note text,
+        occurred_at timestamptz not null default now(),
+        next_action_at timestamptz,
+        created_at timestamptz not null default now()
+      );
+
       create index if not exists errors_created_at_idx on errors (created_at desc);
       create index if not exists idx_leads_send_queue on leads(status, next_attempt_at, send_claimed_at);
       create index if not exists idx_leads_followup_queue on leads(status, followup_sent_at, followup_claimed_at);
       create index if not exists idx_leads_unsubscribe_token on leads(unsubscribe_token);
+      create index if not exists idx_lead_interactions_lead_id on lead_interactions(lead_id, occurred_at desc);
 
       insert into settings (id, daily_cap, paused) values (1, 100, false) on conflict (id) do nothing;
     `);
@@ -117,17 +129,9 @@ async function initDb() {
     if (parseInt(nicheCheck.rows[0].count, 10) === 0) {
       await pool.query(`
         insert into niches (label, city, status, source) values
-          ('garage door repair', 'Dallas, TX', 'active', 'seed'),
-          ('garage door repair', 'Austin, TX', 'active', 'seed'),
-          ('garage door repair', 'Miami, FL', 'active', 'seed'),
-          ('chiropractor', 'Dallas, TX', 'active', 'seed'),
-          ('chiropractor', 'Austin, TX', 'active', 'seed'),
-          ('chiropractor', 'Miami, FL', 'active', 'seed'),
-          ('roofing contractor', 'Dallas, TX', 'active', 'seed'),
-          ('roofing contractor', 'Austin, TX', 'active', 'seed'),
-          ('roofing contractor', 'Miami, FL', 'active', 'seed');
+          ('Solar Installer', 'Port Harcourt, Nigeria', 'active', 'seed');
       `);
-      console.log("Seeded 9 initial niches!");
+      console.log("Seeded the Port Harcourt solar validation niche!");
     } else {
       console.log(`Niches table already contains ${nicheCheck.rows[0].count} rows.`);
     }

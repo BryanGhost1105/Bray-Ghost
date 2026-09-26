@@ -79,7 +79,19 @@ export async function ensureSchema(): Promise<void> {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS lead_interactions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+        channel TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        note TEXT,
+        occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        next_action_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+
       CREATE INDEX IF NOT EXISTS idx_lead_contacts_lead_id ON lead_contacts(lead_id);
+      CREATE INDEX IF NOT EXISTS idx_lead_interactions_lead_id ON lead_interactions(lead_id, occurred_at DESC);
       CREATE INDEX IF NOT EXISTS idx_leads_opportunity_score ON leads(opportunity_score);
       CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
       CREATE INDEX IF NOT EXISTS idx_leads_send_queue ON leads(status, next_attempt_at, send_claimed_at);

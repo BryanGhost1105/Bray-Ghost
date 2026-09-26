@@ -1,6 +1,6 @@
 import { queryWithRetry, ensureSchema } from '@/lib/db'
 import { DEFAULT_INDUSTRIES, DEFAULT_CITIES, MAX_DAILY_CAP } from '@/lib/constants'
-import DashboardClient, { type ErrorRecord, type Lead, type Niche, type Settings } from '@/components/DashboardClient'
+import DashboardClient, { type ErrorRecord, type Lead, type LeadInteraction, type Niche, type Settings } from '@/components/DashboardClient'
 import { hasInternalSession } from '@/lib/internalAuth'
 import { redirect } from 'next/navigation'
 
@@ -23,6 +23,7 @@ export default async function Page() {
   let niches: Niche[] = []
   let leads: Lead[] = []
   let errors: ErrorRecord[] = []
+  let interactions: LeadInteraction[] = []
   let stats = {
     total: 0,
     sent_total: 0,
@@ -33,6 +34,10 @@ export default async function Page() {
     avg_opportunity: 0,
     avg_seo: 0,
     avg_mobile: 0,
+    conversations: 0,
+    walkthroughs: 0,
+    proposals: 0,
+    paid_pilots: 0,
   }
   let statusCounts: Record<string, number> = {}
 
@@ -44,6 +49,7 @@ export default async function Page() {
       statsRes,
       statusCountsRes,
       errorsRes,
+      interactionsRes,
     ] = await Promise.all([
       queryWithRetry<Settings>('select * from settings where id = 1'),
 
@@ -123,12 +129,17 @@ export default async function Page() {
       queryWithRetry<ErrorRecord>(
         'select * from errors order by created_at desc limit 200'
       ),
+
+      queryWithRetry<LeadInteraction>(
+        'select * from lead_interactions order by occurred_at desc limit 1000'
+      ),
     ])
 
     settings = settingsRes.rows[0] || settings
     niches = nichesRes.rows
     leads = leadsRes.rows
     errors = errorsRes.rows
+    interactions = interactionsRes.rows
 
     const rawStats = statsRes.rows[0] || {
       total: 0,
@@ -140,6 +151,10 @@ export default async function Page() {
       avg_opportunity: 0,
       avg_seo: 0,
       avg_mobile: 0,
+      conversations: 0,
+      walkthroughs: 0,
+      proposals: 0,
+      paid_pilots: 0,
     }
 
     const manualReplies = Number(settings.replies_count) || 0
@@ -155,6 +170,10 @@ export default async function Page() {
       avg_opportunity: Number(rawStats.avg_opportunity) || 0,
       avg_seo: Number(rawStats.avg_seo) || 0,
       avg_mobile: Number(rawStats.avg_mobile) || 0,
+      conversations: interactions.filter((item) => item.outcome === 'conversation').length,
+      walkthroughs: interactions.filter((item) => item.outcome === 'audit_walkthrough').length,
+      proposals: interactions.filter((item) => item.outcome === 'proposal_sent').length,
+      paid_pilots: interactions.filter((item) => item.outcome === 'paid_pilot').length,
     }
 
     statusCounts = statusCountsRes.rows.reduce(
@@ -181,6 +200,7 @@ export default async function Page() {
       initialSettings={settings}
       initialNiches={niches}
       initialLeads={leads}
+      initialInteractions={interactions}
       initialErrors={errors}
       stats={stats}
       statusCounts={statusCounts}

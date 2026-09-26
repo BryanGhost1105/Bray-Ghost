@@ -32,8 +32,12 @@ try {
   const found = result.rows.map((row) => row.column_name)
   const missing = expected.filter((column) => !found.includes(column))
 
-  console.log(JSON.stringify({ found, missing }, null, 2))
-  if (missing.length > 0) process.exitCode = 1
+  const interactionTable = await pool.query(
+    `SELECT to_regclass('public.lead_interactions') IS NOT NULL AS present`
+  )
+
+  console.log(JSON.stringify({ found, missing, leadInteractionsTable: Boolean(interactionTable.rows[0]?.present) }, null, 2))
+  if (missing.length > 0 || !interactionTable.rows[0]?.present) process.exitCode = 1
 } finally {
   await pool.end()
 }

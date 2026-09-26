@@ -59,6 +59,8 @@ Do not copy a contact address into a campaign until it has been manually checked
 
 ## Validation script
 
+The detailed channel scripts and outcome definitions are in [outreach-playbook.md](outreach-playbook.md).
+
 First contact should request permission to send the observation instead of attaching a long audit immediately:
 
 > Hi, I was checking how solar companies in Port Harcourt handle quote enquiries and noticed one small friction point on [company]'s website. I made a short note showing what a potential customer experiences on mobile. Should I send it here?
