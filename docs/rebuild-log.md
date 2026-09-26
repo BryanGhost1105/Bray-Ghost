@@ -132,6 +132,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Market evidence has not yet been converted into contact or payment evidence; no outreach has been sent.
 - Seeded five validation prospects into the live database under the `Solar Installer` / `Port Harcourt, Nigeria` niche without adding guessed email addresses.
 - Ran the authenticated single-lead pipeline against all five prospects. Result: 5/5 reached `generated`, 5/5 have a discovered contact address, and 5/5 remain `initial_approval_status = pending`.
+- Completed the public research pass for the remaining five candidates and added them to the live cohort. The second pipeline run produced 3 more generated audits with contact addresses; 2 sites returned fetch failures and remain manual-review items rather than being labelled defective.
+- Current cohort evidence: 10 prospects researched, 8 generated audit states, 8 stored contact addresses, 0 approved sends, 0 conversations, and 0 paid pilots.
+- Current contact priority from measured evidence: Solartricity (opportunity 34), Rafrank Integrated (23), Khariz Energy (15), then Dayli Energy (13). TECIL Solar is currently a benchmark/partnership target.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.

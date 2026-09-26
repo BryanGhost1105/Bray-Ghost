@@ -12,6 +12,11 @@ const prospects = [
   { business: 'Toyah Energies Limited', website: 'https://toyahenergies.com/' },
   { business: 'Solar World Electric Technology', website: 'https://www.solarworldelectric.com/' },
   { business: 'Dayli Energy Solutions', website: 'https://www.daylienergy.com/' },
+  { business: 'GoSolar Ng', website: 'https://www.gosolar.ng/' },
+  { business: 'Khariz Energy', website: 'https://kharizenergy.com/' },
+  { business: 'TECIL Solar', website: 'https://www.tecilsolar.com/' },
+  { business: 'Rafrank Integrated Limited', website: 'https://rafrankltd.com/solar.php' },
+  { business: 'Goshenvilla Limited', website: 'https://goshenvilla.com/' },
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })

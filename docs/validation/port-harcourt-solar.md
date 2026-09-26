@@ -87,8 +87,8 @@ If 10 well-targeted conversations produce no serious interest, change the offer 
 ## Current status
 
 - Initial public prospect set: 10 candidates
-- Manually inspected public pages: 5
-- Coldstart pipeline run: 5/5 reached `generated`; 5/5 received a contact address; 5/5 remain `initial_approval_status=pending`
+- Public pages checked: 10; detailed Coldstart audits completed: 8; 2 crawler fetches failed and remain manual-review items
+- Coldstart pipeline run: 8/10 have a generated audit state; 8/10 have a contact address; all 10 remain `initial_approval_status=pending`
 - Audit range: opportunity scores 5–34; the strongest defect-led candidate in this batch is Solartricity, while Solar World Electric is better treated as a benchmark or partnership target
 - Conversations: 0
 - Audit walkthroughs: 0
@@ -106,6 +106,28 @@ These notes describe what the public pages show. They are not claims that the bu
 | Toyah Energies | Contact page explicitly lists a Port Harcourt branch and accepts enquiries for solar, C&I projects, infrastructure, technical support, and partnerships. | Keep; test whether the broad offer makes the next action unclear |
 | Solar World Electric | Public site has extensive proof, published package pricing, a system calculator, case studies, financing information, WhatsApp, and Port Harcourt operations. | Do not lead with a defect; treat as a possible benchmark or partnership target |
 | Dayli Energy Solutions | Contact page clearly presents location, WhatsApp, response expectations, a form, and a quote/install link. | Keep only if a live mobile test reveals a concrete friction point |
+
+## Remaining five public checks
+
+These are public observations from the linked pages and search-indexed content. They are qualification notes, not claims of lost revenue. Re-check the exact mobile path before contacting anyone.
+
+| Business | Verified public observation | Validation decision |
+|---|---|---|
+| GoSolar Ng | Homepage presents a system calculator, financing message, sizing simulation, quote/contact CTAs, Port Harcourt address, phone numbers, and a public email. | Keep as a strong operator; test whether calculator completion routes cleanly to a human and whether the financing CTA creates a measurable enquiry handoff. |
+| Khariz Energy | Contact page shows Port Harcourt office details, public email/phone, a message form, and a “Send to WhatsApp” action. | Keep; test form-to-WhatsApp handoff and whether the enquiry asks enough information to qualify a solar project. |
+| TECIL Solar | Homepage presents a “Get a Free Quote” path, WhatsApp, Port Harcourt branches, a large project/trust record, and multiple service categories. | Do not lead with a generic audit; consider a focused enquiry-routing or branch-response conversation. |
+| Rafrank Integrated Limited | Solar is presented alongside oil and gas, trailer parts, CCTV, and construction; the solar page provides a direct email/phone and says enquiries route through the contact page. | Keep as a defect-led candidate; test whether a solar visitor can reach a focused quote path without navigating unrelated divisions. |
+| Goshenvilla Limited | Public contact result shows a Port Harcourt head office, two phone numbers, two emails, and a “Send a Request” path for renewable energy. | Keep; manually verify the live request form and whether the solar CTA routes to a monitored team. |
+
+### Coldstart pipeline result for the remaining five
+
+| Business | Result | Current decision |
+|---|---|---|
+| Rafrank Integrated Limited | Generated; opportunity score 23; public email found; audit found no meta description, no LocalBusiness schema, no tap-to-call link, and no online inquiry form. | First-contact candidate after manual mobile verification. |
+| Khariz Energy | Generated; opportunity score 15; public email found; audit found no tap-to-call link and no online inquiry form. | Secondary first-contact candidate; verify whether WhatsApp flow compensates. |
+| TECIL Solar | Generated; opportunity score 6; public email found; audit found no LocalBusiness schema and no homepage quote form. | Strong operator/benchmark; do not lead with a generic defect pitch. |
+| Goshenvilla Limited | Live crawler fetch failed; no email stored by Coldstart. | Do not infer a website problem; manually verify site and use public phone/contact route if appropriate. |
+| GoSolar Ng | Live crawler fetch failed; no email stored by Coldstart. | Do not infer a website problem; manually verify site and use the public contact route if appropriate. |
 
 The first five do not justify a generic “your website is bad” pitch. The stronger approach is to find a specific, current enquiry friction or approach a strong operator with a partnership/overflow angle.
 
