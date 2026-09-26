@@ -1,204 +1,145 @@
 import { pool } from './db'
-import { Resend } from 'resend'
-import { MAX_FOLLOWUPS_PER_DAY, RESEND_TIMEOUT_MS, FOLLOWUP_DELAY_INTERVAL } from './constants'
+import { MAX_FOLLOWUPS_PER_DAY, GMAIL_TIMEOUT_MS, FOLLOWUP_DELAY_INTERVAL } from './constants'
 import { toHtml, sendDelayMs, sleep } from './emailFormat'
 import { callDeepSeekJson, parseEmailResponse, getAiApiKey } from './ai'
+import { getEmailSender } from './transporter'
+import { appendComplianceFooter, assertEmailComplianceConfiguration, complianceHeaders } from './compliance'
 
 export interface SendFollowUpsResult {
   sent: number
-  // Human-readable descriptions of every lead whose follow-up could not be
-  // sent (AI generation failure or Resend rejection), so callers can surface
-  // them in the errors table and the cron run instead of silently losing them.
   rejected: string[]
+}
+
+interface FollowupLead {
+  id: string
+  business_name: string
+  email: string | null
+  generated_subject: string | null
+  followup_subject: string | null
+  followup_body: string | null
+  unsubscribe_token: string
 }
 
 export async function sendFollowUps(
   maxFollowups: number,
   isExhausted?: () => boolean
 ): Promise<SendFollowUpsResult> {
-  const resendApiKey = process.env.RESEND_API_KEY
-  if (!resendApiKey) {
-    throw new Error('RESEND_API_KEY is not set in environment variables.')
-  }
+  assertEmailComplianceConfiguration()
+  const { transporter, fromEmail, replyTo } = await getEmailSender()
+  if (!getAiApiKey()) throw new Error('AI_API_KEY or GEMINI_API_KEY is not set in environment variables.')
 
-  if (!getAiApiKey()) {
-    throw new Error('DEEPSEEK_API_KEY or AI_API_KEY is not set in environment variables.')
-  }
-
-  const senderDomain = process.env.SENDER_DOMAIN
-  if (!senderDomain) {
-    throw new Error('SENDER_DOMAIN is not set in environment variables.')
-  }
-  const senderName = process.env.SENDER_NAME
-  const fromEmail = senderName ? `${senderName} <outreach@${senderDomain}>` : `outreach@${senderDomain}`
-  const resend = new Resend(resendApiKey)
-
-  // 1. Check settings table
   const settingsResult = await pool.query('SELECT paused FROM settings WHERE id = 1')
-  if (settingsResult.rows.length === 0) {
-    throw new Error('Settings table row with id = 1 not found.')
-  }
+  if (settingsResult.rows.length === 0) throw new Error('Settings table row with id = 1 not found.')
+  if (settingsResult.rows[0].paused) return { sent: 0, rejected: [] }
 
-  const settings = settingsResult.rows[0]
-  if (settings.paused) {
-    return { sent: 0, rejected: [] }
-  }
-
-  // 2. Count today's follow-up sends (UTC date). Follow-ups have their own
-  //    daily budget, separate from the initial-send capacity cap.
   const countResult = await pool.query(
-    `SELECT COUNT(*) FROM leads WHERE followup_sent_at >= CURRENT_DATE`
+    'SELECT COUNT(*)::int AS count FROM leads WHERE followup_sent_at >= CURRENT_DATE'
   )
-  const sentTodayCount = parseInt(countResult.rows[0].count, 10) || 0
-  const remaining = MAX_FOLLOWUPS_PER_DAY - sentTodayCount
+  const remaining = MAX_FOLLOWUPS_PER_DAY - (Number(countResult.rows[0].count) || 0)
+  if (remaining <= 0) return { sent: 0, rejected: [] }
 
-  if (remaining <= 0) {
-    return { sent: 0, rejected: [] }
-  }
-
-  // 3. Find eligible leads: status = 'sent', initial_sent_at > 7 days ago,
-  //    followup_sent_at is null, and the address hasn't bounced/complained.
-  //    The daily budget is enforced above; this bound keeps one invocation
-  //    safely inside the function timeout so the loop can trickle follow-ups.
-  const leadsResult = await pool.query(
-    `SELECT id, business_name, email, generated_subject, generated_body, followup_subject, followup_body FROM leads 
-     WHERE status = 'sent' AND initial_sent_at <= NOW() - $2::interval AND followup_sent_at IS NULL 
-       AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
-     LIMIT $1`,
-    [Math.min(maxFollowups, remaining), FOLLOWUP_DELAY_INTERVAL]
-  )
-
-  const leads = leadsResult.rows
-  if (leads.length === 0) {
-    return { sent: 0, rejected: [] }
-  }
-
-  let successfullySent = 0
   const rejected: string[] = []
+  let sent = 0
 
-  for (const lead of leads) {
+  for (let index = 0; index < Math.min(maxFollowups, remaining); index++) {
     if (isExhausted?.()) break
 
-    if (!lead.email || lead.email.trim() === '') {
-      rejected.push(`Lead ${lead.id}: missing email`)
-      await pool.query('UPDATE leads SET status = $1 WHERE id = $2', ['failed', lead.id])
-      continue
-    }
+    const leadResult = await pool.query(
+      `WITH candidate AS (
+         SELECT id FROM leads
+         WHERE status = 'sent'
+           AND initial_sent_at <= NOW() - $1::interval
+           AND followup_sent_at IS NULL
+           AND replied_at IS NULL
+           AND (followup_claimed_at IS NULL OR followup_claimed_at < NOW() - INTERVAL '20 minutes')
+           AND (followup_next_attempt_at IS NULL OR followup_next_attempt_at <= NOW())
+           AND COALESCE(followup_attempts, 0) < 3
+           AND email IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
+         ORDER BY initial_sent_at ASC
+         LIMIT 1
+       )
+       UPDATE leads
+       SET followup_claimed_at = NOW(), followup_attempts = COALESCE(followup_attempts, 0) + 1
+       WHERE leads.id = (SELECT id FROM candidate)
+       RETURNING id, business_name, email, generated_subject, followup_subject, followup_body, unsubscribe_token`,
+      [FOLLOWUP_DELAY_INTERVAL]
+    )
+    const lead = leadResult.rows[0] as FollowupLead | undefined
+    if (!lead) break
 
-    const businessName = lead.business_name
-
-    // A crashed earlier attempt may have persisted follow-up content without
-    // ever recording the sent timestamp. Reuse it so a deduped resend stores
-    // exactly what was delivered. Otherwise generate fresh content and persist
-    // it before sending, so a crash mid-send can't lose it either.
-    const persistedSubject = lead.followup_subject
-    const persistedBody = lead.followup_body
-    const hasPersistedContent =
-      !!persistedSubject &&
-      !!persistedBody &&
-      persistedSubject.trim() !== '' &&
-      persistedBody.trim() !== ''
-
-    let subject: string
-    let body: string
-
-    if (hasPersistedContent) {
-      subject = persistedSubject
-      body = persistedBody
-    } else {
+    let subject = lead.followup_subject
+    let body = lead.followup_body
+    if (!subject || !body) {
       try {
-        const systemPrompt = `You are an independent freelance web developer writing a quick follow-up email to a local business owner.
-Strict Rules:
-1. NO em dashes anywhere in the output.
-2. NO corporate filler phrases ("I hope this finds you well", "reaching out", "circle back", etc.).
-3. NO parallel-triplet sentence structures ("fast, reliable, and affordable").
-4. 2-3 sentences total.
-5. Referencing that this is a quick follow-up to the earlier note, not repeating the full pitch.
-6. Casual, human tone.
-7. Return STRICT JSON only in this exact format, with no other text or explanation:
-{
-  "subject": "string",
-  "body": "string"
-}
-
-Business Name: ${businessName}
-Previous Subject: ${lead.generated_subject || ''}
-`
-
         const emailData = await callDeepSeekJson(
-          systemPrompt,
-          `Generate the follow-up email for ${businessName}.`,
+          `You are an independent freelance web developer writing a short follow-up email to a local business owner.
+Rules: 2-3 sentences, casual human tone, no em dashes, no corporate filler, and do not repeat the full pitch.
+Return strict JSON: {"subject":"string","body":"string"}
+Business Name: ${lead.business_name}
+Previous Subject: ${lead.generated_subject || ''}`,
+          `Generate a brief follow-up for ${lead.business_name}.`,
           parseEmailResponse
         )
-
         subject = emailData.subject
         body = emailData.body
-
-        // Persist before sending so a crash between Resend accepting the email
-        // and the sent-at UPDATE can't lose the exact content that was delivered.
         await pool.query(
-          'UPDATE leads SET followup_subject = $1, followup_body = $2 WHERE id = $3',
+          'UPDATE leads SET followup_subject = $1, followup_body = $2 WHERE id = $3 AND followup_claimed_at IS NOT NULL',
           [subject, body, lead.id]
         )
-      } catch (err) {
-        // AI failure (network, rate limit, or config) is not the lead's fault:
-        // leave it in 'sent' so a later run retries the follow-up, and surface
-        // the failure for the operator instead of failing it silently.
-        rejected.push(
-          `Lead ${lead.id} (${businessName}): follow-up generation failed: ${
-            err instanceof Error ? err.message : String(err)
-          }`
-        )
+      } catch (error) {
+        await releaseFollowup(lead.id, error)
+        rejected.push(`Lead ${lead.id} (${lead.business_name}): follow-up generation failed: ${error instanceof Error ? error.message : String(error)}`)
         continue
       }
+    }
+
+    if (!lead.email || !subject || !body || !lead.unsubscribe_token) {
+      await releaseFollowup(lead.id, new Error('Missing follow-up send data.'))
+      rejected.push(`Lead ${lead.id}: missing follow-up data.`)
+      continue
     }
 
     try {
       await sleep(sendDelayMs())
-
-      const emailPromise = resend.emails.send(
-        {
-          from: fromEmail,
-          to: lead.email,
-          subject: subject,
-          text: body,
-          html: toHtml(body),
-          replyTo: process.env.REPLY_TO_EMAIL,
-        },
-        { idempotencyKey: `followup:${lead.id}` }
+      const fullBody = appendComplianceFooter(body, lead.unsubscribe_token)
+      const emailPromise = transporter.sendMail({
+        from: fromEmail,
+        to: lead.email,
+        subject,
+        text: fullBody,
+        html: toHtml(fullBody),
+        replyTo,
+        headers: complianceHeaders(lead.unsubscribe_token),
+      })
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gmail follow-up timeout; review before retrying.')), GMAIL_TIMEOUT_MS)
       )
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Resend API timeout')), RESEND_TIMEOUT_MS)
-      )
-
-      const emailResponse = (await Promise.race([emailPromise, timeoutPromise])) as Awaited<
-        ReturnType<typeof resend.emails.send>
-      >
-
-      if (emailResponse.error || !emailResponse.data?.id) {
-        rejected.push(
-          `Lead ${lead.id} (${lead.email}): ${emailResponse.error?.message || 'no email id returned'}`
-        )
-        await pool.query('UPDATE leads SET status = $1 WHERE id = $2', ['failed', lead.id])
-        continue
-      }
-
-      const resendId = emailResponse.data.id
-
+      const response = await Promise.race([emailPromise, timeoutPromise])
+      const messageId = response.messageId || `gmail-${Date.now()}-${lead.id}`
       await pool.query(
-        `UPDATE leads SET followup_sent_at = NOW(), followup_resend_id = $1, status = 'followed_up' WHERE id = $2`,
-        [resendId, lead.id]
+        `UPDATE leads SET followup_sent_at = NOW(), followup_provider_id = $1,
+         status = 'followed_up', followup_claimed_at = NULL,
+         followup_next_attempt_at = NULL WHERE id = $2 AND followup_claimed_at IS NOT NULL`,
+        [messageId, lead.id]
       )
-
-      successfullySent++
-    } catch (err) {
-      rejected.push(
-        `Lead ${lead.id} (${lead.email}): ${err instanceof Error ? err.message : String(err)}`
-      )
-      await pool.query('UPDATE leads SET status = $1 WHERE id = $2', ['failed', lead.id])
+      sent++
+    } catch (error) {
+      await releaseFollowup(lead.id, error)
+      rejected.push(`Lead ${lead.id} (${lead.email}): ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
-  return { sent: successfullySent, rejected }
+  return { sent, rejected }
+}
+
+async function releaseFollowup(leadId: string, error: unknown): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error)
+  await pool.query(
+    `UPDATE leads SET followup_claimed_at = NULL,
+      followup_next_attempt_at = CASE WHEN COALESCE(followup_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 day' END,
+      send_last_error = $1
+     WHERE id = $2`,
+    [message.slice(0, 1000), leadId]
+  )
 }

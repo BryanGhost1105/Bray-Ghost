@@ -6,8 +6,8 @@ const CRON_SECRET_HEADER = 'x-cron-secret'
 // Shared-secret auth for the automation endpoints (/api/discover,
 // /api/run-pipeline). The caller must present the same CRON_SECRET value in a
 // header, which the GitHub Actions cron does. Fails closed: if CRON_SECRET is
-// unset, nothing is authorized. (/api/settings is deliberately left open for
-// the single-operator dashboard.)
+// unset, nothing is authorized. Dashboard/API mutations use the separate
+// internal access token gate.
 
 export function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET

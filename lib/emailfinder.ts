@@ -1,23 +1,21 @@
 import { pool } from './db'
 import * as cheerio from 'cheerio'
-import { extractEmails, extractEmailsFromHtml } from './scraper'
+import { parseAllValidEmails, type DiscoveredEmail } from './emailQuality'
 import { isSuppressedEmail } from './suppression'
+import { isSafeUrl } from './scraper'
 import { MAX_EMAIL_SEARCH_RESULTS } from './constants'
 
 const DDG_HTML_URL = 'https://html.duckduckgo.com/html/'
 const BING_HTML_URL = 'https://www.bing.com/search'
 const SEARCH_TIMEOUT_MS = 10000
-const FETCH_TIMEOUT_MS = 10000
-const REQUEST_DELAY_MS = 400
+const FETCH_TIMEOUT_MS = 8000
+const REQUEST_DELAY_MS = 500
 const SEARCH_ATTEMPTS = 2
-const SEARCH_RETRY_DELAY_MS = 2000
+const SEARCH_RETRY_DELAY_MS = 1500
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 // Aggregator/directory hosts rarely expose the business's own email publicly
-// (Yelp, Facebook, etc. gate it behind their own forms) and their pages often
-// contain unrelated placeholder addresses. Skip them when fetching result pages
-// so a wrong address never gets harvested.
 const DIRECTORY_HOSTS = new Set([
   'yelp.com',
   'facebook.com',
@@ -37,6 +35,9 @@ const DIRECTORY_HOSTS = new Set([
   'thumbtack.com',
   'nextdoor.com',
   'foursquare.com',
+  'tripadvisor.com',
+  'zoominfo.com',
+  'dnb.com',
 ])
 
 function hostname(url: string): string {
@@ -47,11 +48,31 @@ function hostname(url: string): string {
   }
 }
 
-interface NoWebsiteLead {
+function emailDomain(email: string): string {
+  return email.split('@')[1]?.toLowerCase().replace(/^www\./, '') || ''
+}
+
+function isSameOrSubdomain(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`)
+}
+
+function pageMentionsBusiness(html: string, businessName: string, city: string): boolean {
+  const $ = cheerio.load(html)
+  $('script, style, noscript, svg').remove()
+  const text = $('body').text().toLowerCase().replace(/\s+/g, ' ')
+  const businessTokens = businessName.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length >= 3)
+  const businessMatch = businessTokens.slice(0, 4).some((token) => text.includes(token))
+  const cityName = city.split(',')[0]?.trim().toLowerCase()
+  return businessMatch && (!cityName || text.includes(cityName))
+}
+
+interface SourcingLead {
   id: string
   business_name: string
   address: string | null
+  website: string | null
   place_id: string | null
+  status: string
   city: string
 }
 
@@ -60,6 +81,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function fetchHtml(url: string, timeoutMs: number): Promise<string> {
+  if (!isSafeUrl(url)) {
+    throw new Error(`Unsafe target URL rejected by SSRF guard: ${url}`)
+  }
+
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -79,7 +104,7 @@ async function fetchHtml(url: string, timeoutMs: number): Promise<string> {
 
 interface SearchResults {
   urls: string[]
-  snippetEmails: string[]
+  snippetEmails: DiscoveredEmail[]
 }
 
 async function ddgSearch(query: string): Promise<SearchResults> {
@@ -96,10 +121,6 @@ async function ddgSearch(query: string): Promise<SearchResults> {
     clearTimeout(timeoutId)
   }
 
-  // DuckDuckGo answers a rate limit with HTTP 202 (and sometimes 403) plus an
-  // "unusual traffic" page. That is NOT "no results": treating it as a clean
-  // empty search would delete the lead and permanently suppress its place.
-  // Throw instead so the caller retries and/or falls back to another engine.
   if (!res.ok || res.status === 202 || res.status === 403) {
     throw new Error(`DuckDuckGo search failed with status ${res.status}`)
   }
@@ -115,14 +136,13 @@ async function ddgSearch(query: string): Promise<SearchResults> {
   $('a.result__a').each((_, el) => {
     const href = $(el).attr('href')
     if (!href) return
-    // DuckDuckGo wraps result links in /l/?uddg=<url> redirects; unwrap them.
     let target = href
     try {
       const parsed = new URL(href.startsWith('//') ? `https:${href}` : href, DDG_HTML_URL)
       const uddg = parsed.searchParams.get('uddg')
       if (uddg) target = uddg
     } catch {
-      // fall back to the raw href
+      // fall back to raw href
     }
     urls.push(target)
   })
@@ -133,16 +153,17 @@ async function ddgSearch(query: string): Promise<SearchResults> {
     if (text) snippets.push(text)
   })
 
+  const snippetEmails = parseAllValidEmails(snippets.join(' '), {
+    source: 'search_snippet',
+    defaultConfidence: 'MEDIUM',
+  })
+
   return {
     urls: Array.from(new Set(urls)).slice(0, MAX_EMAIL_SEARCH_RESULTS),
-    snippetEmails: extractEmails(snippets.join(' ')),
+    snippetEmails,
   }
 }
 
-// Fallback engine: Bing's HTML results. DuckDuckGo frequently blocks
-// datacenter IPs (GitHub Actions runners) with 403s, and a 403 means "blocked",
-// not "no results" — so when DDG is unreachable we try Bing before giving up so
-// the lead stays in the queue instead of being wrongly treated as un-emailable.
 async function bingSearch(query: string): Promise<SearchResults> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS)
@@ -183,21 +204,24 @@ async function bingSearch(query: string): Promise<SearchResults> {
     if (text) snippets.push(text)
   })
 
+  const snippetEmails = parseAllValidEmails(snippets.join(' '), {
+    source: 'search_snippet',
+    defaultConfidence: 'MEDIUM',
+  })
+
   return {
     urls: Array.from(new Set(urls)).slice(0, MAX_EMAIL_SEARCH_RESULTS),
-    snippetEmails: extractEmails(snippets.join(' ')),
+    snippetEmails,
   }
 }
 
 async function searchResultUrls(query: string): Promise<SearchResults> {
-  // Try DuckDuckGo with a bounded retry: a 202/403/429 is a bot/rate-limit
-  // response that can clear within seconds, so retry once before falling back
-  // to Bing. Only if every attempt and the fallback fail do we surface an error
-  // (which keeps the lead queued rather than deleting it as "no email found").
   let lastDdgError: string | null = null
+  let ddgResults: SearchResults | null = null
   for (let attempt = 1; attempt <= SEARCH_ATTEMPTS; attempt++) {
     try {
-      return await ddgSearch(query)
+      ddgResults = await ddgSearch(query)
+      if (ddgResults.urls.length > 0 || ddgResults.snippetEmails.length > 0) break
     } catch (err) {
       lastDdgError = err instanceof Error ? err.message : String(err)
       if (attempt < SEARCH_ATTEMPTS) await sleep(SEARCH_RETRY_DELAY_MS)
@@ -205,27 +229,54 @@ async function searchResultUrls(query: string): Promise<SearchResults> {
   }
 
   try {
-    return await bingSearch(query)
+    const bingResults = await bingSearch(query)
+    return {
+      urls: Array.from(new Set([...(ddgResults?.urls || []), ...bingResults.urls])).slice(0, MAX_EMAIL_SEARCH_RESULTS * 2),
+      snippetEmails: [...(ddgResults?.snippetEmails || []), ...bingResults.snippetEmails],
+    }
   } catch (err) {
     const bingError = err instanceof Error ? err.message : String(err)
+    if (ddgResults) return ddgResults
     throw new Error(`Email search failed: ${lastDdgError}; Bing fallback: ${bingError}`)
   }
 }
 
-async function findEmailForBusiness(businessName: string, city: string): Promise<string | null> {
-  const { urls, snippetEmails } = await searchResultUrls(`${businessName} ${city}`)
-  if (snippetEmails.length > 0) return snippetEmails[0]
+export async function findEmailViaSearch(
+  businessName: string,
+  city: string,
+  websiteDomain?: string | null
+): Promise<DiscoveredEmail | null> {
+  const query = websiteDomain
+    ? `site:${websiteDomain} email OR contact`
+    : `"${businessName}" "${city}" contact email`
+
+  const { urls, snippetEmails } = await searchResultUrls(query)
+  if (websiteDomain && snippetEmails.length > 0) {
+    const matchingSnippet = snippetEmails.find((email) => isSameOrSubdomain(emailDomain(email.email), websiteDomain))
+    if (matchingSnippet) return matchingSnippet
+  }
 
   for (const url of urls) {
-    if (DIRECTORY_HOSTS.has(hostname(url))) {
+    const host = hostname(url)
+    if (DIRECTORY_HOSTS.has(host) || !isSafeUrl(url)) {
       continue
     }
+
+    if (websiteDomain && !isSameOrSubdomain(host, websiteDomain)) continue
+
     try {
       const html = await fetchHtml(url, FETCH_TIMEOUT_MS)
-      const emails = extractEmailsFromHtml(html)
-      if (emails.length > 0) return emails[0]
+      if (!websiteDomain && !pageMentionsBusiness(html, businessName, city)) continue
+      const emails = parseAllValidEmails(html, {
+        source: 'search_result_page',
+        siteUrl: url,
+        defaultConfidence: 'MEDIUM',
+      })
+      if (emails.length > 0) {
+        return { ...emails[0], sourceUrl: url }
+      }
     } catch (err) {
-      console.error(`Page fetch failed during email search for "${businessName}":`, err)
+      console.warn(`Search result page fetch failed for "${businessName}" (${url}):`, err instanceof Error ? err.message : String(err))
     }
     await sleep(REQUEST_DELAY_MS)
   }
@@ -233,79 +284,110 @@ async function findEmailForBusiness(businessName: string, city: string): Promise
   return null
 }
 
+/**
+ * Searches for emails for leads in 'no_website' or 'email_needed' status.
+ * NEVER deletes leads or suppresses places when emails cannot be found.
+ */
 export async function sourceNoWebsiteEmails(
   max: number,
   isExhausted?: () => boolean
-): Promise<{ sourced: number; deleted: number; failures: string[] }> {
+): Promise<{ sourced: number; pending: number; failures: string[] }> {
   const result = await pool.query(
-    `SELECT l.id, l.business_name, l.address, l.place_id, n.city
-     FROM leads l JOIN niches n ON n.id = l.niche_id
-     WHERE l.status = 'no_website' AND l.email IS NULL AND l.scraped_content IS NULL
-     ORDER BY l.seo_score ASC NULLS LAST
+    `SELECT l.id, l.business_name, l.address, l.website, l.place_id, l.status,
+            COALESCE(n.city, l.address, '') AS city
+     FROM leads l LEFT JOIN niches n ON n.id = l.niche_id
+     WHERE (l.status = 'no_website' OR l.status = 'email_needed') AND l.email IS NULL
+       AND COALESCE(l.email_attempts, 0) < 3
+       AND (l.next_attempt_at IS NULL OR l.next_attempt_at <= NOW())
+     ORDER BY l.opportunity_score DESC NULLS LAST, l.seo_score ASC NULLS LAST
      LIMIT $1`,
     [max]
   )
 
   let sourced = 0
-  let deleted = 0
+  let pending = 0
   const failures: string[] = []
 
-  for (const lead of result.rows as NoWebsiteLead[]) {
+  for (const lead of result.rows as SourcingLead[]) {
     if (isExhausted?.()) break
 
     const businessName = lead.business_name
     const city = lead.city
+    let domain: string | null = null
 
-    let email: string | null = null
+    if (lead.website) {
+      try {
+        const formatted = /^https?:\/\//i.test(lead.website) ? lead.website : `https://${lead.website}`
+        domain = new URL(formatted).hostname.replace(/^www\./, '')
+      } catch {
+        // ignore
+      }
+    }
+
+    let foundEmail: DiscoveredEmail | null = null
     let searchFailed = false
+
     try {
-      email = await findEmailForBusiness(businessName, city)
-      // Skip addresses that already bounced/complained so a dead address can't
-      // be re-sourced for another lead.
-      if (email && (await isSuppressedEmail(email))) {
-        email = null
+      foundEmail = await findEmailViaSearch(businessName, city, domain)
+
+      if (foundEmail && (await isSuppressedEmail(foundEmail.email))) {
+        foundEmail = null
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      console.error(`Email search failed for lead ${lead.id} (${businessName}):`, message)
-      // Surface the failure so a DuckDuckGo outage (or rate limit) is visible
-      // on the dashboard instead of silently retrying every day.
+      console.error(`Email search error for lead ${lead.id} (${businessName}):`, message)
       failures.push(`Lead ${lead.id} (${businessName}): ${message}`)
       searchFailed = true
     }
 
-    // A thrown error means the search itself broke (DuckDuckGo unreachable,
-    // rate-limited, or a malformed response) — it does NOT mean the business has
-    // no findable email. Leave the lead in 'no_website' so a later run retries
-    // instead of deleting it and suppressing its place forever.
     if (searchFailed) {
+      await pool.query(
+        `UPDATE leads SET email_attempts = COALESCE(email_attempts, 0) + 1,
+         email_last_attempt_at = NOW(),
+         next_attempt_at = CASE WHEN COALESCE(email_attempts, 0) + 1 >= 3 THEN NULL ELSE NOW() + INTERVAL '2 days' END
+         WHERE id = $1`,
+        [lead.id]
+      )
       continue
     }
 
-    const fallbackContent = `Business Name: ${businessName}\nAddress: ${lead.address || 'Unknown Address'}\nCity: ${city}\nWebsite: None`
-
-    const trimmedEmail = email?.trim()
-    if (trimmedEmail) {
+    if (foundEmail) {
+      // Record contact in lead_contacts
       await pool.query(
-        `UPDATE leads SET email = $1, scraped_content = $2, status = 'scraped' WHERE id = $3`,
-        [trimmedEmail, fallbackContent, lead.id]
+        `INSERT INTO lead_contacts (lead_id, email, email_type, source, confidence, source_url)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT DO NOTHING`,
+        [lead.id, foundEmail.email, foundEmail.type, foundEmail.source, foundEmail.confidence, foundEmail.sourceUrl || null]
+      )
+
+      const fallbackContent = `Business Name: ${businessName}\nAddress: ${lead.address || 'Unknown Address'}\nCity: ${city}\nWebsite: ${lead.website || 'None'}\nEmail Source: Search Fallback (${foundEmail.email})`
+
+      await pool.query(
+        `UPDATE leads SET
+           email = $1,
+           email_source = $2,
+           email_confidence = $3,
+           scraped_content = COALESCE(scraped_content, $4),
+           status = 'scraped'
+         WHERE id = $5`,
+        [foundEmail.email, foundEmail.source, foundEmail.confidence, fallbackContent, lead.id]
       )
       sourced++
     } else {
-      // No email findable: don't store useless data. Delete and suppress so
-      // discovery never re-adds it.
-      if (lead.place_id) {
-        await pool.query(
-          `INSERT INTO suppressed_places (place_id) VALUES ($1) ON CONFLICT (place_id) DO NOTHING`,
-          [lead.place_id]
-        )
-      }
-      await pool.query('DELETE FROM leads WHERE id = $1', [lead.id])
-      deleted++
+      // Email not found: Keep lead as 'email_needed' (or 'no_website') - NEVER DELETE!
+      const statusToSet = lead.website ? 'email_needed' : 'no_website'
+      await pool.query(
+        `UPDATE leads SET status = $1, email_attempts = COALESCE(email_attempts, 0) + 1,
+         email_last_attempt_at = NOW(),
+         next_attempt_at = CASE WHEN COALESCE(email_attempts, 0) + 1 >= 3 THEN NULL ELSE NOW() + INTERVAL '2 days' END
+         WHERE id = $2`,
+        [statusToSet, lead.id]
+      )
+      pending++
     }
 
     await sleep(REQUEST_DELAY_MS)
   }
 
-  return { sourced, deleted, failures }
+  return { sourced, pending, failures }
 }

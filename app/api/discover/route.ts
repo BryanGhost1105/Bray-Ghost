@@ -5,6 +5,7 @@ import { expandNiches } from '@/lib/expansion'
 import { getPlacesQuotaRemaining } from '@/lib/placesQuota'
 import { recordError } from '@/lib/errors'
 import { requireCronAuth } from '@/lib/cronAuth'
+import { ensureSchema } from '@/lib/db'
 import { MAX_NICHES_PER_RUN, DISCOVER_BUDGET_MS } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
@@ -19,6 +20,7 @@ const PENDING_LEAD_STATUSES = ['new', 'scraped', 'generated', 'no_website']
 export async function GET(request: Request) {
   const authError = requireCronAuth(request)
   if (authError) return authError
+  await ensureSchema()
 
   let quotaRemaining = 0
   try {

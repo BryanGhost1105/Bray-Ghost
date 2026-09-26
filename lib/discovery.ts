@@ -16,15 +16,14 @@ interface GooglePlace {
   }
   formattedAddress?: string
   websiteUri?: string
+  nationalPhoneNumber?: string
   rating?: number
   userRatingCount?: number
 }
-
 interface PlacesSearchResponse {
   places?: GooglePlace[]
   nextPageToken?: string
 }
-
 interface PlaceWithPage {
   place: GooglePlace
   pageIndex: number
@@ -60,7 +59,7 @@ export class PlacesQuotaError extends Error {
 }
 
 const FIELDMASK =
-  'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,nextPageToken'
+  'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,nextPageToken'
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -247,16 +246,28 @@ export async function discoverBusinesses(
     const leadStatus = hasWebsite ? 'new' : 'no_website'
 
     const insertResult = await pool.query(
-      `INSERT INTO leads (niche_id, business_name, address, website, place_id, status, seo_score, seo_flags)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (place_id) DO NOTHING`,
-      [nicheId, businessName, address, website, placeId, leadStatus, discovery.score, discovery.flags.join(',') || null]
+      `INSERT INTO leads (niche_id, business_name, address, website, phone, place_id, status, seo_score, seo_flags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (place_id) DO NOTHING
+       RETURNING id`,
+      [nicheId, businessName, address, website, place.nationalPhoneNumber || null, placeId, leadStatus, discovery.score, discovery.flags.join(',') || null]
     )
 
     if (insertResult.rowCount && insertResult.rowCount > 0) {
       newLeadsCount++
+      const newLeadId = insertResult.rows[0]?.id
+      if (newLeadId) {
+        // Asynchronously or inline enrich newly found lead email
+        try {
+          const { enrichLeadEmail } = await import('./emailScraperEngine')
+          await enrichLeadEmail(newLeadId).catch(() => {})
+        } catch {
+          // ignore background enrichment error
+        }
+      }
     }
   }
 
   return { inserted: newLeadsCount, status, ...(resultError && { error: resultError }) }
 }
+

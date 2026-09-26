@@ -1,6 +1,7 @@
-# ColdStart
+# Bray-Ghost
 
-An autonomous cold outreach pipeline for a freelance web developer. It finds local businesses in US cities/industries that rank weak on Google, scores their SEO, finds their email, writes and sends a personalized cold email (with one automatic follow-up), and logs everything in a single-operator dashboard. No manual review step — the pipeline runs itself daily and the operator checks the dashboard when they want to.
+An autonomous client discovery and cold outreach engine. It finds businesses with weak search presence, analyzes their SEO signals, extracts contact information, generates human-sounding personalized pitches with Google Gemini, and dispatches cold emails within safe daily volume limits.
+
 
 ## How it works
 
@@ -11,7 +12,7 @@ Each scheduled run executes the full loop:
 3. **Scraping** — each lead's website is fetched (with timeout/redirect handling), text is extracted with Cheerio, and emails are pulled via regex + `mailto:` links. Leads with no discoverable email are deleted and suppressed.
 4. **Email sourcing for no-website leads** — businesses without a website get an email search (DuckDuckGo HTML) instead of scraping; found emails move the lead to `scraped` with a "build a website" pitch, otherwise the lead is deleted.
 5. **Generation** — DeepSeek writes a subject + body with strict style rules (no em dashes, no corporate filler, no template-triplet phrasing, one specific detail from the scraped content as the opener, 3–5 sentences), returning strict JSON.
-6. **Sending** — initial emails go out via Resend, weakest-SEO first, within the daily cap. Exactly one follow-up is sent 7+ days later per lead, on a separate daily budget.
+6. **Sending** — initial emails go out through the connected Gmail account, weakest-SEO first, within the daily cap. Exactly one follow-up is sent 7+ days later per lead, on a separate daily budget. Every message includes a physical mailing address and unsubscribe link.
 7. **Niche expansion** — when no active niches remain, the AI proposes 3–5 new industry/city combinations (with reasoning) so the pipeline keeps running on its own.
 
 Stage failures are recorded in the `errors` table and shown on the dashboard's Error Log tab instead of halting the run. Each stage is bounded per run (e.g. 5 niches, 12 scrapes, 8 generations, 8 email searches) so it fits inside Vercel's function timeout.
@@ -22,7 +23,7 @@ Stage failures are recorded in the `errors` table and shown on the dashboard's E
 - **Neon** (serverless Postgres) via plain `pg`, no ORM — 6 tables: `niches`, `leads`, `settings`, `suppressed_places`, `suppressed_emails`, `errors`
 - **Google Places API (New)** — business discovery
 - **DeepSeek API** — email/follow-up generation and niche suggestion
-- **Resend** — email delivery + open-tracking/bounce/complaint webhook
+- **Gmail** — OAuth or Gmail App Password delivery; replies are handled in Gmail and marked in the private dashboard
 - **GitHub Actions** — daily cron trigger
 
 ## Getting started
@@ -32,7 +33,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — the dashboard loads directly (single operator, no auth).
+Open [http://localhost:3000](http://localhost:3000) and sign in with the internal access token.
 
 ### Environment variables
 
@@ -43,16 +44,19 @@ Create `.env.local` (never commit it):
 | `DATABASE_URL` | Neon Postgres connection string (pooled) |
 | `GOOGLE_PLACES_API_KEY` | Places API (New) key, restricted to Places API only |
 | `DEEPSEEK_API_KEY` | DeepSeek API key for email generation (or `AI_API_KEY`) |
-| `RESEND_API_KEY` | Resend key with sending access |
-| `SENDER_DOMAIN` | Verified sending domain (emails go out from `outreach@<domain>`) |
-| `SENDER_NAME` | Optional display name shown as the sender (omitted if unset) |
+| `APP_ACCESS_TOKEN` | Private dashboard/API token; `CRON_SECRET` is used as a fallback for a single-operator setup |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Gmail OAuth client credentials |
+| `GMAIL_TOKEN_ENCRYPTION_KEY` | Secret used to encrypt the Gmail OAuth refresh token in Postgres |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | Optional Gmail SMTP fallback instead of OAuth |
+| `SENDER_NAME` | Display name shown as the sender |
 | `REPLY_TO_EMAIL` | Where replies land |
-| `RESEND_WEBHOOK_SECRET` | Resend webhook signing secret (`whsec_…`), used to verify webhook requests |
+| `APP_URL` | Public app URL used in unsubscribe links |
+| `SENDER_POSTAL_ADDRESS` | Physical mailing address included in every commercial email |
 | `CRON_SECRET` | Shared secret protecting `/api/discover` and `/api/run-pipeline`; callers must send it in the `x-cron-secret` header. Must be set in both Vercel and as a `CRON_SECRET` repository secret in GitHub. |
 
 The GitHub Actions schedule additionally uses an `APP_URL` repository secret pointing at the deployed app.
 
-The full account setup (domain, Resend verification, Google Cloud, Neon) and the exact SQL schema are documented in [`docs/build-guide.md`](docs/build-guide.md) and [`docs/prd.md`](docs/prd.md).
+For the current Gmail-only internal workflow, use the [internal operations guide](docs/internal-operations.md). The older build guide and PRD are historical references and may mention inactive providers.
 
 ## Dashboard
 
@@ -60,7 +64,7 @@ Three tabs, backed by `app/page.tsx` + `components/DashboardClient.tsx`:
 
 - **Leads Directory** — all leads with pipeline status, SEO weakness badge, website, email, sent timestamps and open engagement; filterable by status (`new`, `scraped`, `generated`, `sent`, `followed_up`, `no_website`, `failed`), searchable, paginated (10/25/50 per page), with a modal to read each generated email.
 - **Targeting Matrix** — multi-select industries and US cities (minimum 3 of each enforced), the resulting `industries × cities` search-pool count, an add-custom-niche form, and the full niche registry with status/source/reasoning.
-- **Pipeline Settings** — daily send cap (1–100; initial sends hard-capped at 50/day, follow-ups on a separate 50/day budget) and an emergency pause toggle that halts all sending.
+- **Pipeline Settings** — daily send cap (1–25; initial sends are hard-capped at 10/day, follow-ups on a separate 10/day budget) and an emergency pause toggle that halts all sending.
 - **Error Log** — pipeline and discovery stage failures recorded in the `errors` table, with a modal to inspect full error details. Replaces the old email-based failure alerts.
 
 ## API routes
@@ -68,7 +72,7 @@ Three tabs, backed by `app/page.tsx` + `components/DashboardClient.tsx`:
 - `GET /api/run-pipeline` — runs the pipeline loop over leads already in the database (send backlog, then scraping → email sourcing → generation); returns per-stage results and whether more work remains (the GitHub Action loops on this). Does **not** call Google Places.
 - `GET /api/discover` — discovers new businesses from Google Places for active niches, enforces the daily Places call budget, marks genuinely exhausted niches, and triggers AI niche expansion. Runs independently; a failure here never affects `/api/run-pipeline`.
 - `POST /api/settings` — update settings, save targeting matrix, add a custom niche.
-- `POST /api/webhooks/resend` — records Resend `email.opened` events against leads, and handles `email.bounced`/`email.complained`: the lead is marked failed and the address is added to `suppressed_emails` so it can never be sent to again. The daily pipeline run also monitors 24h bounce/complaint counts and records a `pipeline` error in the `errors` table if they cross thresholds.
+- `GET|POST /api/unsubscribe/:token` — public unsubscribe endpoint used by Gmail messages; it suppresses the address and stops future sends.
 
 ## Automation
 

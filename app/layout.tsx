@@ -1,29 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: 'ColdStart Operator',
-  description: 'Local business outreach pipeline dashboard',
+  title: "Bray-Ghost · Autonomous Outreach Engine",
+  description: "Autonomous client discovery, SEO auditing, and personalized cold outreach system.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#1a1a1a] text-[#c8c4bc] selection:bg-[#8b3a2a] selection:text-[#c8c4bc]">
+        {children}
+      </body>
     </html>
   );
 }

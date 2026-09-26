@@ -1,30 +1,139 @@
 @import "tailwindcss";
 
+@theme {
+  --color-surface: #1a1a1a;
+  --color-ink-primary: #c8c4bc;
+  --color-ink-secondary: #c8c4bc80;
+  --color-accent-primary: #8b3a2a;
+  --color-accent-secondary: #8b3a2a33;
+  --color-border-auden: #c8c4bc1a;
+  
+  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 :root {
-  --background: #f8f8f5;
-  --foreground: #141413;
+  --surface: #1a1a1a;
+  --ink-primary: #c8c4bc;
+  --ink-secondary: rgba(200, 196, 188, 0.5);
+  --accent-primary: #8b3a2a;
+  --accent-secondary: rgba(139, 58, 42, 0.2);
+  --border: rgba(200, 196, 188, 0.1);
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  41.99% { opacity: 1; }
+  42% { opacity: 0.25; }
+  43% { opacity: 0.85; }
+  45% { opacity: 0.25; }
+  46% { opacity: 1; }
+  80% { opacity: 1; }
+  80.5% { opacity: 0.3; }
+  81% { opacity: 0.9; }
+  81.5% { opacity: 0.2; }
+  82% { opacity: 1; }
+}
+
+.animate-flicker {
+  animation: flicker 4s infinite;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  background-color: #1a1a1a;
+  color: #c8c4bc;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar & subtle aesthetics */
-::-webkit-scrollbar {
+/* Tabular figures for data and metrics */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Poster Shell signature container */
+.poster-shell {
+  background: linear-gradient(135deg, rgba(200, 196, 188, 0.2) 0%, rgba(26, 26, 26, 0.8) 40%, rgba(139, 58, 42, 0.3) 100%);
+  padding: 1px;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+}
+
+.poster-shell-inner {
+  background: #1a1a1a;
+  border-radius: 15px;
+}
+
+/* Feature Grid with 1px internal separators */
+.feature-grid {
+  display: grid;
+  background-color: rgba(200, 196, 188, 0.1);
+  gap: 1px;
+}
+
+/* Blueprint scaffolding lines */
+.scaffold-boundary {
+  position: relative;
+}
+.scaffold-boundary::before,
+.scaffold-boundary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(200, 196, 188, 0.08);
+  pointer-events: none;
+  z-index: 10;
+}
+.scaffold-boundary::before {
+  left: 0;
+}
+.scaffold-boundary::after {
+  right: 0;
+}
+
+/* L-bracket technical corner marker */
+.corner-brackets {
+  position: relative;
+}
+.corner-brackets::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
   width: 6px;
   height: 6px;
+  border-top: 1px solid rgba(200, 196, 188, 0.4);
+  border-left: 1px solid rgba(200, 196, 188, 0.4);
+  pointer-events: none;
+}
+.corner-brackets::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 6px;
+  height: 6px;
+  border-bottom: 1px solid rgba(200, 196, 188, 0.4);
+  border-right: 1px solid rgba(200, 196, 188, 0.4);
+  pointer-events: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #1a1a1a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d4ce;
-  border-radius: 3px;
+  background: rgba(200, 196, 188, 0.2);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a3a39e;
+  background: rgba(200, 196, 188, 0.35);
 }
 
 .no-scrollbar {
@@ -33,3 +142,4 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+

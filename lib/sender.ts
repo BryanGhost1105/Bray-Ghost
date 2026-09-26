@@ -1,142 +1,168 @@
 import { pool } from './db'
-import { Resend } from 'resend'
-import { MAX_SEO_SCORE_TO_SEND, MAX_INITIAL_SENDS_PER_DAY, RESEND_TIMEOUT_MS } from './constants'
+import { MAX_SEO_SCORE_TO_SEND, MAX_INITIAL_SENDS_PER_DAY, GMAIL_TIMEOUT_MS } from './constants'
 import { toHtml, sendDelayMs, sleep } from './emailFormat'
+import { getEmailSender } from './transporter'
+import { appendComplianceFooter, assertEmailComplianceConfiguration, complianceHeaders } from './compliance'
 
 export interface SendBatchResult {
   sent: number
-  // Human-readable descriptions of every lead that failed to send, so callers
-  // can surface the failures (e.g. a misconfigured sender domain rejects every
-  // attempt) in the errors table and the cron run instead of silently losing
-  // them to console.error.
   rejected: string[]
+}
+
+interface ClaimedLead {
+  id: string
+  email: string | null
+  generated_subject: string | null
+  generated_body: string | null
+  unsubscribe_token: string
+}
+
+export interface SendOneResult {
+  sent: boolean
+  message?: string
+  rejected?: string
+}
+
+async function claimLead(leadId?: string): Promise<ClaimedLead | null> {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const settingsResult = await client.query(
+      'SELECT daily_cap, paused FROM settings WHERE id = 1 FOR UPDATE'
+    )
+    if (settingsResult.rows.length === 0) throw new Error('Settings table row with id = 1 not found.')
+
+    const settings = settingsResult.rows[0]
+    if (settings.paused) {
+      await client.query('COMMIT')
+      return null
+    }
+
+    const countResult = await client.query(
+      'SELECT COUNT(*)::int AS count FROM leads WHERE initial_sent_at >= CURRENT_DATE'
+    )
+    const sentToday = Number(countResult.rows[0].count) || 0
+    const remaining = Math.min(Number(settings.daily_cap), MAX_INITIAL_SENDS_PER_DAY) - sentToday
+    if (remaining <= 0) {
+      await client.query('COMMIT')
+      return null
+    }
+
+    const result = await client.query(
+      `WITH candidate AS (
+         SELECT id FROM leads
+         WHERE ($2::uuid IS NULL OR id = $2::uuid)
+         AND status = 'generated'
+         AND (seo_score IS NULL OR seo_score < $1)
+         AND initial_sent_at IS NULL
+         AND replied_at IS NULL
+         AND (send_claimed_at IS NULL OR send_claimed_at < NOW() - INTERVAL '20 minutes')
+         AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
+         AND email IS NOT NULL
+         AND generated_subject IS NOT NULL
+         AND generated_body IS NOT NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email)
+         )
+         ORDER BY seo_score ASC NULLS LAST, opportunity_score DESC NULLS LAST, created_at ASC
+         LIMIT 1
+       )
+       UPDATE leads
+       SET send_claimed_at = NOW(), send_attempts = COALESCE(send_attempts, 0) + 1
+       WHERE leads.id = (SELECT id FROM candidate)
+       RETURNING id, email, generated_subject, generated_body, unsubscribe_token`,
+      [MAX_SEO_SCORE_TO_SEND, leadId || null]
+    )
+    await client.query('COMMIT')
+    return result.rows[0] || null
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+async function recordSendFailure(lead: ClaimedLead, error: unknown): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error)
+  await pool.query(
+    `UPDATE leads
+     SET status = CASE WHEN COALESCE(send_attempts, 0) >= 3 THEN 'failed' ELSE 'generated' END,
+         send_claimed_at = NULL,
+         next_attempt_at = CASE WHEN COALESCE(send_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 hour' END,
+         send_last_error = $1
+     WHERE id = $2 AND send_claimed_at IS NOT NULL`,
+    [message.slice(0, 1000), lead.id]
+  )
+}
+
+export async function sendSingleLead(leadId: string, skipDelay = false): Promise<SendOneResult> {
+  assertEmailComplianceConfiguration()
+  const { transporter, fromEmail, replyTo } = await getEmailSender()
+  const lead = await claimLead(leadId || undefined)
+
+  if (!lead) {
+    return {
+      sent: false,
+      rejected: 'Lead is not ready, is already claimed/sent, is suppressed, or the daily cap is exhausted.',
+    }
+  }
+
+  if (!lead.email || !lead.generated_subject || !lead.generated_body || !lead.unsubscribe_token) {
+    await recordSendFailure(lead, new Error('Missing email, generated content, or unsubscribe token.'))
+    return { sent: false, rejected: `Lead ${lead.id}: missing send data.` }
+  }
+
+  const body = appendComplianceFooter(lead.generated_body, lead.unsubscribe_token)
+
+  try {
+    if (!skipDelay) await sleep(sendDelayMs())
+    const emailPromise = transporter.sendMail({
+      from: fromEmail,
+      to: lead.email,
+      subject: lead.generated_subject,
+      text: body,
+      html: toHtml(body),
+      replyTo,
+      headers: complianceHeaders(lead.unsubscribe_token),
+    })
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gmail send timeout; review before retrying.')), GMAIL_TIMEOUT_MS)
+    )
+    const emailResponse = await Promise.race([emailPromise, timeoutPromise])
+    const messageId = emailResponse.messageId || `gmail-${Date.now()}-${lead.id}`
+
+    await pool.query(
+      `UPDATE leads
+       SET initial_sent_at = NOW(), initial_provider_id = $1, status = 'sent',
+           send_claimed_at = NULL, next_attempt_at = NULL, send_last_error = NULL
+       WHERE id = $2 AND send_claimed_at IS NOT NULL`,
+      [messageId, lead.id]
+    )
+    return { sent: true, message: messageId }
+  } catch (error) {
+    await recordSendFailure(lead, error)
+    return { sent: false, rejected: `Lead ${lead.id} (${lead.email}): ${error instanceof Error ? error.message : String(error)}` }
+  }
 }
 
 export async function sendBatch(
   maxSends: number,
   isExhausted?: () => boolean
 ): Promise<SendBatchResult> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not set in environment variables.')
-  }
-
-  // Fails closed instead of silently sending from outreach@example.com, which
-  // would be rejected by Resend (unverified domain) and mask a misconfiguration.
-  const senderDomain = process.env.SENDER_DOMAIN
-  if (!senderDomain) {
-    throw new Error('SENDER_DOMAIN is not set in environment variables.')
-  }
-  const senderName = process.env.SENDER_NAME
-  const fromEmail = senderName ? `${senderName} <outreach@${senderDomain}>` : `outreach@${senderDomain}`
-
-  const resend = new Resend(apiKey)
-
-  // 1. Check settings table
-  const settingsResult = await pool.query('SELECT daily_cap, paused FROM settings WHERE id = 1')
-  if (settingsResult.rows.length === 0) {
-    throw new Error('Settings table row with id = 1 not found.')
-  }
-
-  const settings = settingsResult.rows[0]
-  if (settings.paused) {
-    return { sent: 0, rejected: [] }
-  }
-
-  const dailyCap = settings.daily_cap
-
-  // 2. Count today's sent initial emails (UTC date)
-  const countResult = await pool.query(
-    `SELECT COUNT(*) FROM leads WHERE initial_sent_at >= CURRENT_DATE`
-  )
-  const sentTodayCount = parseInt(countResult.rows[0].count, 10) || 0
-  // Initial sends are capped by the daily capacity setting and never exceed
-  // the hard ceiling. Follow-ups have their own separate daily budget.
-  const remaining = Math.min(
-    dailyCap - sentTodayCount,
-    MAX_INITIAL_SENDS_PER_DAY - sentTodayCount
-  )
-
-  if (remaining <= 0) {
-    return { sent: 0, rejected: [] }
-  }
-
-  // 3. Fetch up to 'maxSends' leads with status = 'generated', weakest SEO first,
-  //    excluding anything at/above the SEO cutoff (defense in depth) and any
-  //    address that has bounced or complained before. The daily cap is still
-  //    enforced above; this bound keeps one invocation safely inside the
-  //    function timeout so the workflow loop can trickle the backlog out.
-  const leadsResult = await pool.query(
-    `SELECT id, email, generated_subject, generated_body FROM leads
-     WHERE status = 'generated' AND (seo_score IS NULL OR seo_score < $2)
-       AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
-     ORDER BY seo_score ASC NULLS LAST LIMIT $1`,
-    [Math.min(maxSends, remaining), MAX_SEO_SCORE_TO_SEND]
-  )
-
-  const leads = leadsResult.rows
-  if (leads.length === 0) {
-    return { sent: 0, rejected: [] }
-  }
-
-  let successfullySent = 0
   const rejected: string[] = []
+  let sent = 0
 
-  for (const lead of leads) {
+  for (let index = 0; index < maxSends; index++) {
     if (isExhausted?.()) break
-
-    if (!lead.email || !lead.generated_subject || !lead.generated_body) {
-      rejected.push(`Lead ${lead.id}: missing email or generated content`)
-      await pool.query('UPDATE leads SET status = $1 WHERE id = $2', ['failed', lead.id])
+    const result = await sendSingleLead('', false)
+    if (result.sent) {
+      sent++
       continue
     }
-
-    try {
-      await sleep(sendDelayMs())
-
-      const emailPromise = resend.emails.send(
-        {
-          from: fromEmail,
-          to: lead.email,
-          subject: lead.generated_subject,
-          text: lead.generated_body,
-          html: toHtml(lead.generated_body),
-          replyTo: process.env.REPLY_TO_EMAIL,
-        },
-        { idempotencyKey: `initial:${lead.id}` }
-      )
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Resend API timeout')), RESEND_TIMEOUT_MS)
-      )
-
-      const emailResponse = (await Promise.race([emailPromise, timeoutPromise])) as Awaited<
-        ReturnType<typeof resend.emails.send>
-      >
-
-      if (emailResponse.error || !emailResponse.data?.id) {
-        rejected.push(
-          `Lead ${lead.id} (${lead.email}): ${emailResponse.error?.message || 'no email id returned'}`
-        )
-        await pool.query('UPDATE leads SET status = $1 WHERE id = $2', ['failed', lead.id])
-        continue
-      }
-
-      const resendId = emailResponse.data.id
-
-      await pool.query(
-        `UPDATE leads SET initial_sent_at = NOW(), initial_resend_id = $1, status = 'sent' WHERE id = $2`,
-        [resendId, lead.id]
-      )
-
-      successfullySent++
-    } catch (err) {
-      rejected.push(
-        `Lead ${lead.id} (${lead.email}): ${err instanceof Error ? err.message : String(err)}`
-      )
-      await pool.query('UPDATE leads SET status = $1 WHERE id = $2', ['failed', lead.id])
-    }
+    if (result.rejected) rejected.push(result.rejected)
+    break
   }
 
-  return { sent: successfullySent, rejected }
+  return { sent, rejected }
 }

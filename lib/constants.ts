@@ -26,13 +26,13 @@ export const MAX_PLACES_PAGES_PER_NICHE = 3
 export const PLACES_PAGES_TO_SKIP = 0
 export const MAX_PLACES_CALLS_PER_DAY = 100
 export const MAX_SEO_SCORE_TO_SEND = 75
-export const MAX_INITIAL_SENDS_PER_DAY = 50
-export const MAX_FOLLOWUPS_PER_DAY = 50
-export const MAX_SENDS_PER_RUN = 50
+export const MAX_INITIAL_SENDS_PER_DAY = 10
+export const MAX_FOLLOWUPS_PER_DAY = 10
+export const MAX_SENDS_PER_RUN = 10
 export const MAX_FOLLOWUPS_PER_RUN = 2
 export const SEND_INTERVAL_MS_MIN = 20000
 export const SEND_INTERVAL_MS_MAX = 40000
-export const MAX_DAILY_CAP = 100
+export const MAX_DAILY_CAP = 25
 export const MAX_EMAIL_SEARCHES_PER_RUN = 4
 export const MAX_EMAIL_SEARCH_RESULTS = 4
 
@@ -44,10 +44,12 @@ export const MAX_GENERATES_PER_RUN = 8
 
 // Timeouts for every external network call (abort the request, never hang the
 // batch). Also centralized so each integration is uniformly bounded.
-export const PLACES_TIMEOUT_MS = 10000
+export const PLACES_TIMEOUT_MS = 30000
 export const SCRAPE_TIMEOUT_MS = 10000
 export const AI_TIMEOUT_MS = 15000
-export const RESEND_TIMEOUT_MS = 10000
+export const GMAIL_TIMEOUT_MS = 10000
+export const PAGESPEED_TIMEOUT_MS = 15000
+export const PAGESPEED_API_URL = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
 
 // Soft wall-clock budget for a single automation invocation, leaving margin
 // under Vercel's 60s serverless max duration on the Hobby plan. Stages stop
@@ -69,6 +71,7 @@ export const FOLLOWUP_DELAY_INTERVAL = '7 days'
 // AI model configuration shared by generation, follow-ups, and niche expansion.
 export const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
 export const DEEPSEEK_MODEL = 'deepseek-v4-flash'
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
 export const DEEPSEEK_TEMPERATURE = 0.7
 export const MAX_AI_ATTEMPTS = 2
 // Alert thresholds for send-health monitoring (rolling 24h window).
