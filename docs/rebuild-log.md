@@ -124,4 +124,5 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Changed provider timeout handling so uncertain sends enter `send_uncertain`, lose approval, and cannot retry automatically; follow-up timeouts are likewise held for review.
 - Added `send_uncertain_at` and `followup_uncertain_at` to the schema and verified both live columns after a transactional migration.
 - Static verification: `npm run lint`, `npx tsc --noEmit`, and `git diff --check` passed.
+- Production verification: `npm run build` completed successfully after the stale build process exited.
 - Next action: choose the first niche/geography and begin the 30-prospect validation set while continuing the remaining send-safety work.
