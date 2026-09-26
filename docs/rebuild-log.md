@@ -112,5 +112,6 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Added a read-only outreach dry-run action that never contacts a provider or changes lead state.
 - Added dashboard visibility for drafts awaiting approval versus approved drafts.
 - Changed the top-level dispatch label to make the approved-only behavior explicit.
+- Added a revoke-approval action so an approved draft can be returned to the pending queue before dispatch.
 - Verification: `npm run lint`, `npx tsc --noEmit`, `git diff --check`, and send-path search passed.
 - Next action: test the approval columns against the configured Neon database and add a revoke-approval action before any real send test.

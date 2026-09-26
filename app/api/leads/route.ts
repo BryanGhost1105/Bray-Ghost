@@ -306,6 +306,31 @@ export async function POST(request: Request) {
       })
     }
 
+    if (action === 'revoke_approval') {
+      if (!leadId) {
+        return NextResponse.json({ success: false, error: 'leadId is required.' }, { status: 400 })
+      }
+
+      const result = await pool.query(
+        `UPDATE leads
+         SET initial_approval_status = 'pending',
+             initial_approved_at = NULL,
+             initial_approved_by = NULL
+         WHERE id = $1 AND initial_sent_at IS NULL
+         RETURNING id, business_name`,
+        [leadId]
+      )
+
+      if (!result.rows[0]) {
+        return NextResponse.json({ success: false, error: 'Lead was not found or has already been sent.' }, { status: 404 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Approval revoked for ${result.rows[0].business_name}. No email was sent.`,
+      })
+    }
+
     if (action === 'send_bulk') {
       return NextResponse.json(
         { success: false, error: 'Bulk dispatch is disabled. Approve generated drafts individually or with approve_bulk, then run the approved-send step.' },

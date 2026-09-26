@@ -606,23 +606,27 @@ export default function DashboardClient({
     }
   }
 
-  // Approve a single generated draft. Approval does not dispatch email.
+  // Toggle approval for a single generated draft. Neither action dispatches email.
   const [sendingLeadId, setSendingLeadId] = useState<string | null>(null)
-  const handleSendSingle = async (leadId: string) => {
-    if (!confirm('Approve this generated email for sending? No email will be sent by this action.')) return
+  const handleSendSingle = async (leadId: string, currentlyApproved = false) => {
+    const action = currentlyApproved ? 'revoke_approval' : 'approve_send'
+    const prompt = currentlyApproved
+      ? 'Revoke this draft approval? No email will be sent.'
+      : 'Approve this generated email for sending? No email will be sent by this action.'
+    if (!confirm(prompt)) return
     setSendingLeadId(leadId)
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve_send', leadId }),
+        body: JSON.stringify({ action, leadId }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Send failed')
-      alert(data.message || 'Email approved for sending.')
+      if (!res.ok) throw new Error(data.error || 'Approval update failed')
+      alert(data.message || (currentlyApproved ? 'Approval revoked.' : 'Email approved for sending.'))
       router.refresh()
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Send failed')
+      alert(err instanceof Error ? err.message : 'Approval update failed')
     } finally {
       setSendingLeadId(null)
     }
@@ -1684,10 +1688,10 @@ export default function DashboardClient({
                                 {lead.email && lead.generated_body && !lead.initial_sent_at ? (
                                   <button
                                     type="button"
-                                    onClick={() => handleSendSingle(lead.id)}
+                                    onClick={() => handleSendSingle(lead.id, lead.initial_approval_status === 'approved')}
                                     disabled={sendingLeadId === lead.id}
                                     className="p-1 rounded-md text-[11px] font-mono text-[#6dc86d] border border-[#6dc86d]/30 hover:bg-[#6dc86d]/20 transition-all disabled:opacity-40"
-                                    title="Approve this generated draft for sending"
+                                    title={lead.initial_approval_status === 'approved' ? 'Revoke approval' : 'Approve this generated draft for sending'}
                                   >
                                     {sendingLeadId === lead.id ? (
                                       <span className="w-3.5 h-3.5 border-2 border-[#6dc86d] border-t-transparent rounded-full animate-spin inline-block" />
@@ -2278,17 +2282,17 @@ export default function DashboardClient({
                 {selectedLead.email && selectedLead.generated_body && !selectedLead.initial_sent_at && (
                   <button
                     type="button"
-                    onClick={() => handleSendSingle(selectedLead.id)}
+                    onClick={() => handleSendSingle(selectedLead.id, selectedLead.initial_approval_status === 'approved')}
                     disabled={sendingLeadId === selectedLead.id}
                     className="px-3 py-1.5 bg-[#6dc86d]/10 hover:bg-[#6dc86d]/20 text-[#6dc86d] rounded-lg text-xs font-mono border border-[#6dc86d]/30 transition-colors flex items-center gap-1.5 disabled:opacity-40"
-                    title="Approve this reviewed draft for a later approved-send run"
+                    title={selectedLead.initial_approval_status === 'approved' ? 'Revoke approval for this draft' : 'Approve this reviewed draft for a later approved-send run'}
                   >
                     {sendingLeadId === selectedLead.id ? (
                       <span className="w-3 h-3 border-2 border-[#6dc86d] border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <Send size={13} />
                     )}
-                    <span>{selectedLead.initial_approval_status === 'approved' ? 'Approved' : 'Approve for Sending'}</span>
+                    <span>{selectedLead.initial_approval_status === 'approved' ? 'Revoke Approval' : 'Approve for Sending'}</span>
                   </button>
                 )}
                 {/* Enrich Email — for leads missing an email */}
@@ -2872,10 +2876,10 @@ export default function DashboardClient({
                                     {lead.status === 'generated' && lead.email && lead.generated_body && !lead.initial_sent_at && (
                                   <button
                                     type="button"
-                                    onClick={() => handleSendSingle(lead.id)}
+                                    onClick={() => handleSendSingle(lead.id, lead.initial_approval_status === 'approved')}
                                     disabled={sendingLeadId === lead.id}
                                     className="p-1 rounded text-[11px] text-[#6dc86d] border border-[#6dc86d]/30 hover:bg-[#6dc86d]/20 transition-all disabled:opacity-40"
-                                    title="Approve this generated draft for sending"
+                                    title={lead.initial_approval_status === 'approved' ? 'Revoke approval' : 'Approve this generated draft for sending'}
                                   >
                                     <Send size={12} />
                                   </button>
