@@ -119,4 +119,6 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Added and ran the scoped transactional migration at `scripts/migrate-approval-schema.mjs`.
 - Re-verified the live database: all six approval columns are present and no columns are missing.
 - No lead rows or settings were modified by the migration.
-- Next action: run the application workflow in dry-run mode, then begin one-niche market validation.
+- Ran the local authenticated workflow against the configured database: `POST /api/manual-trigger` with `dry_run` returned HTTP 200.
+- Runtime result: 0 generated drafts, 0 approved sends, 0 pending approvals, 0 approved follow-ups; the endpoint confirmed no provider contact and no lead-state changes.
+- Next action: choose the first niche/geography and begin the 30-prospect validation set while continuing the remaining send-safety work.
