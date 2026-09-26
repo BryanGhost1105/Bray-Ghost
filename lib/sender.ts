@@ -86,14 +86,17 @@ async function claimLead(leadId?: string): Promise<ClaimedLead | null> {
 
 async function recordSendFailure(lead: ClaimedLead, error: unknown): Promise<void> {
   const message = error instanceof Error ? error.message : String(error)
+  const uncertain = /send timeout/i.test(message)
   await pool.query(
     `UPDATE leads
-     SET status = CASE WHEN COALESCE(send_attempts, 0) >= 3 THEN 'failed' ELSE 'generated' END,
+     SET status = CASE WHEN $2 THEN 'send_uncertain' WHEN COALESCE(send_attempts, 0) >= 3 THEN 'failed' ELSE 'generated' END,
          send_claimed_at = NULL,
-         next_attempt_at = CASE WHEN COALESCE(send_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 hour' END,
+         send_uncertain_at = CASE WHEN $2 THEN NOW() ELSE send_uncertain_at END,
+         initial_approval_status = CASE WHEN $2 THEN 'pending' ELSE initial_approval_status END,
+         next_attempt_at = CASE WHEN $2 OR COALESCE(send_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 hour' END,
          send_last_error = $1
-     WHERE id = $2 AND send_claimed_at IS NOT NULL`,
-    [message.slice(0, 1000), lead.id]
+     WHERE id = $3 AND send_claimed_at IS NOT NULL`,
+    [message.slice(0, 1000), uncertain, lead.id]
   )
 }
 

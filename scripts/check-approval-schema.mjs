@@ -10,9 +10,11 @@ const expected = [
   'initial_approval_status',
   'initial_approved_at',
   'initial_approved_by',
+  'send_uncertain_at',
   'followup_approval_status',
   'followup_approved_at',
   'followup_approved_by',
+  'followup_uncertain_at',
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })

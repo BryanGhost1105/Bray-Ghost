@@ -117,11 +117,12 @@ interface DashboardClientProps {
   defaultCities: string[]
 }
 
-const LEAD_STATUS_TABS = ['all', 'new', 'email_needed', 'scraped', 'generated', 'sent', 'followed_up', 'no_website', 'failed', 'unsubscribed'] as const
+const LEAD_STATUS_TABS = ['all', 'new', 'email_needed', 'scraped', 'generated', 'sent', 'followed_up', 'no_website', 'failed', 'send_uncertain', 'unsubscribed'] as const
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
 function getLeadNextAction(lead: Lead): string {
   if (lead.status === 'unsubscribed') return 'Do not contact'
+  if (lead.status === 'send_uncertain') return 'Check mailbox before any retry'
   if (lead.replied_at) return 'Reply received'
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
@@ -1610,6 +1611,8 @@ export default function DashboardClient({
                                   ? 'text-[#c8c4bc] bg-[#8b3a2a]/20'
                                   : lead.status === 'failed'
                                   ? 'text-[#8b3a2a] bg-[#8b3a2a]/10'
+                                  : lead.status === 'send_uncertain'
+                                  ? 'text-[#e85d4a] bg-[#e85d4a]/10'
                                   : lead.status === 'email_needed'
                                   ? 'text-[#c8a44b] bg-[#c8a44b10]'
                                   : lead.status === 'generated' || lead.status === 'scraped'
@@ -1619,6 +1622,7 @@ export default function DashboardClient({
                                 <span className={`w-1.5 h-1.5 rounded-full ${
                                   lead.status === 'sent' || lead.status === 'followed_up' ? 'bg-[#8b3a2a]'
                                   : lead.status === 'failed' ? 'bg-[#8b3a2a]'
+                                  : lead.status === 'send_uncertain' ? 'bg-[#e85d4a]'
                                   : lead.status === 'email_needed' ? 'bg-[#c8a44b]'
                                   : lead.status === 'generated' || lead.status === 'scraped' ? 'bg-[#c8c4bc]'
                                   : 'bg-[#c8c4bc40]'

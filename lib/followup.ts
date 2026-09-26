@@ -136,11 +136,14 @@ Previous Subject: ${lead.generated_subject || ''}`,
 
 async function releaseFollowup(leadId: string, error: unknown): Promise<void> {
   const message = error instanceof Error ? error.message : String(error)
+  const uncertain = /follow-up timeout/i.test(message)
   await pool.query(
     `UPDATE leads SET followup_claimed_at = NULL,
-      followup_next_attempt_at = CASE WHEN COALESCE(followup_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 day' END,
+      followup_uncertain_at = CASE WHEN $2 THEN NOW() ELSE followup_uncertain_at END,
+      followup_approval_status = CASE WHEN $2 THEN 'pending' ELSE followup_approval_status END,
+      followup_next_attempt_at = CASE WHEN $2 OR COALESCE(followup_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 day' END,
       send_last_error = $1
-     WHERE id = $2`,
-    [message.slice(0, 1000), leadId]
+     WHERE id = $3`,
+    [message.slice(0, 1000), uncertain, leadId]
   )
 }

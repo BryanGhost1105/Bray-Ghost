@@ -117,7 +117,7 @@ export async function PATCH(request: Request) {
     const updatedAddress = address !== undefined ? address : current.address
     let updatedStatus = status !== undefined ? status : current.status
 
-    const allowedStatuses = new Set(['new', 'email_needed', 'scraped', 'generated', 'sent', 'followed_up', 'no_website', 'failed', 'unsubscribed'])
+    const allowedStatuses = new Set(['new', 'email_needed', 'scraped', 'generated', 'sent', 'followed_up', 'no_website', 'failed', 'send_uncertain', 'unsubscribed'])
     if (status !== undefined && !allowedStatuses.has(String(status))) {
       return NextResponse.json({ success: false, error: 'Invalid lead status.' }, { status: 400 })
     }

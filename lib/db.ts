@@ -52,7 +52,9 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_last_attempt_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_last_error TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS send_claimed_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS send_uncertain_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_claimed_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_uncertain_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS send_attempts INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_attempts INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_next_attempt_at TIMESTAMP WITH TIME ZONE;

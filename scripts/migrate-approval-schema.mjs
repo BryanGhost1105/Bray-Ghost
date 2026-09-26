@@ -14,9 +14,11 @@ try {
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_approval_status TEXT NOT NULL DEFAULT 'pending';
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_approved_at TIMESTAMP WITH TIME ZONE;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_approved_by TEXT;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS send_uncertain_at TIMESTAMP WITH TIME ZONE;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approval_status TEXT NOT NULL DEFAULT 'pending';
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approved_at TIMESTAMP WITH TIME ZONE;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approved_by TEXT;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_uncertain_at TIMESTAMP WITH TIME ZONE;
   `)
   await pool.query('COMMIT')
   console.log('Approval schema migration committed.')
