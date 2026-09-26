@@ -85,10 +85,24 @@ If 10 well-targeted conversations produce no serious interest, change the offer 
 ## Current status
 
 - Initial public prospect set: 10 candidates
-- Manually verified prospects: 0
+- Manually inspected public pages: 5
 - Conversations: 0
 - Audit walkthroughs: 0
 - Proposals: 0
 - Paid pilots: 0
 
-Next action: manually inspect the first five websites, record one verified observation per site, and contact the most responsive businesses through their preferred public channel.
+## First inspection notes
+
+These notes describe what the public pages show. They are not claims that the businesses are doing anything wrong.
+
+| Business | Verified public observation | Validation decision |
+|---|---|---|
+| Solartricity | Search result shows product packages, a quote/order path, a Port Harcourt address, and contact details. The indexed page is older than the other observations, so the current experience must be checked directly before contact. | Keep for manual re-check |
+| Sombreiro Energy | Homepage presents renewable energy, EPC, energy trading, and materials sales together; it also shows a WhatsApp consultation path and multiple project examples, including Rivers State work. | Keep; test whether a solar buyer can reach a focused quote path quickly |
+| Toyah Energies | Contact page explicitly lists a Port Harcourt branch and accepts enquiries for solar, C&I projects, infrastructure, technical support, and partnerships. | Keep; test whether the broad offer makes the next action unclear |
+| Solar World Electric | Public site has extensive proof, published package pricing, a system calculator, case studies, financing information, WhatsApp, and Port Harcourt operations. | Do not lead with a defect; treat as a possible benchmark or partnership target |
+| Dayli Energy Solutions | Contact page clearly presents location, WhatsApp, response expectations, a form, and a quote/install link. | Keep only if a live mobile test reveals a concrete friction point |
+
+The first five do not justify a generic “your website is bad” pitch. The stronger approach is to find a specific, current enquiry friction or approach a strong operator with a partnership/overflow angle.
+
+Next action: perform live mobile checks on the remaining candidates and begin permission-based conversations with the strongest fit, starting with Sombreiro, Toyah, and any weaker verified site found in the next five.

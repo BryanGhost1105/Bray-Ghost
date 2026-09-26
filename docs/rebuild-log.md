@@ -127,5 +127,6 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Static verification: `npm run lint`, `npx tsc --noEmit`, and `git diff --check` passed.
 - Production verification: `npm run build` completed successfully after the stale build process exited.
 - Created `docs/validation/port-harcourt-solar.md` with the offer hypothesis, public evidence, 10 research candidates, contact checklist, script, and success gates.
+- Inspected the first five public pages and recorded qualification notes; Solar World Electric currently looks like a benchmark/partnership target rather than a defect-led prospect.
 - Market evidence has not yet been converted into contact or payment evidence; no outreach has been sent.
-- Next action: manually verify the first five candidates and record the first conversations.
+- Next action: live-check the remaining candidates and begin permission-based conversations with the strongest fit.
