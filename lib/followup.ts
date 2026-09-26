@@ -1,12 +1,16 @@
 import { pool } from './db'
 import { MAX_FOLLOWUPS_PER_DAY, GMAIL_TIMEOUT_MS, FOLLOWUP_DELAY_INTERVAL } from './constants'
 import { toHtml, sendDelayMs, sleep } from './emailFormat'
-import { callDeepSeekJson, parseEmailResponse, getAiApiKey } from './ai'
 import { getEmailSender } from './transporter'
 import { appendComplianceFooter, assertEmailComplianceConfiguration, complianceHeaders } from './compliance'
 
 export interface SendFollowUpsResult {
   sent: number
+  rejected: string[]
+}
+
+export interface PrepareFollowupDraftsResult {
+  prepared: number
   rejected: string[]
 }
 
@@ -26,7 +30,6 @@ export async function sendFollowUps(
 ): Promise<SendFollowUpsResult> {
   assertEmailComplianceConfiguration()
   const { transporter, fromEmail, replyTo } = await getEmailSender()
-  if (!getAiApiKey()) throw new Error('AI_API_KEY or GEMINI_API_KEY is not set in environment variables.')
 
   const settingsResult = await pool.query('SELECT paused FROM settings WHERE id = 1')
   if (settingsResult.rows.length === 0) throw new Error('Settings table row with id = 1 not found.')
@@ -59,6 +62,7 @@ export async function sendFollowUps(
            AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
          ORDER BY initial_sent_at ASC
          LIMIT 1
+         FOR UPDATE SKIP LOCKED
        )
        UPDATE leads
        SET followup_claimed_at = NOW(), followup_attempts = COALESCE(followup_attempts, 0) + 1
@@ -69,35 +73,12 @@ export async function sendFollowUps(
     const lead = leadResult.rows[0] as FollowupLead | undefined
     if (!lead) break
 
-    let subject = lead.followup_subject
-    let body = lead.followup_body
-    if (!subject || !body) {
-      try {
-        const emailData = await callDeepSeekJson(
-          `You are an independent freelance web developer writing a short follow-up email to a local business owner.
-Rules: 2-3 sentences, casual human tone, no em dashes, no corporate filler, and do not repeat the full pitch.
-Return strict JSON: {"subject":"string","body":"string"}
-Business Name: ${lead.business_name}
-Previous Subject: ${lead.generated_subject || ''}`,
-          `Generate a brief follow-up for ${lead.business_name}.`,
-          parseEmailResponse
-        )
-        subject = emailData.subject
-        body = emailData.body
-        await pool.query(
-          'UPDATE leads SET followup_subject = $1, followup_body = $2 WHERE id = $3 AND followup_claimed_at IS NOT NULL',
-          [subject, body, lead.id]
-        )
-      } catch (error) {
-        await releaseFollowup(lead.id, error)
-        rejected.push(`Lead ${lead.id} (${lead.business_name}): follow-up generation failed: ${error instanceof Error ? error.message : String(error)}`)
-        continue
-      }
-    }
+    const subject = lead.followup_subject
+    const body = lead.followup_body
 
     if (!lead.email || !subject || !body || !lead.unsubscribe_token) {
-      await releaseFollowup(lead.id, new Error('Missing follow-up send data.'))
-      rejected.push(`Lead ${lead.id}: missing follow-up data.`)
+      await releaseFollowup(lead.id, new Error('Follow-up draft is missing. Prepare and approve the draft before sending.'))
+      rejected.push(`Lead ${lead.id}: follow-up draft is missing or incomplete.`)
       continue
     }
 
@@ -132,6 +113,76 @@ Previous Subject: ${lead.generated_subject || ''}`,
   }
 
   return { sent, rejected }
+}
+
+/**
+ * Creates follow-up drafts for review without approving or sending them.
+ * Keeping preparation separate from dispatch makes the human approval gate
+ * meaningful: the operator sees the exact follow-up before it can be sent.
+ */
+export async function prepareFollowupDrafts(
+  maxDrafts: number,
+  isExhausted?: () => boolean
+): Promise<PrepareFollowupDraftsResult> {
+  const rejected: string[] = []
+  let prepared = 0
+
+  for (let index = 0; index < maxDrafts; index++) {
+    if (isExhausted?.()) break
+
+    const result = await pool.query(
+      `WITH candidate AS (
+         SELECT id FROM leads
+         WHERE status = 'sent'
+           AND initial_sent_at <= NOW() - $1::interval
+           AND followup_sent_at IS NULL
+           AND followup_approval_status = 'pending'
+           AND (followup_subject IS NULL OR followup_body IS NULL)
+           AND followup_uncertain_at IS NULL
+           AND replied_at IS NULL
+           AND (followup_claimed_at IS NULL OR followup_claimed_at < NOW() - INTERVAL '20 minutes')
+           AND (followup_next_attempt_at IS NULL OR followup_next_attempt_at <= NOW())
+           AND email IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
+         ORDER BY initial_sent_at ASC
+         LIMIT 1
+       )
+       UPDATE leads
+       SET followup_claimed_at = NOW()
+       WHERE leads.id = (SELECT id FROM candidate)
+       RETURNING id, business_name, generated_subject` ,
+      [FOLLOWUP_DELAY_INTERVAL]
+    )
+
+    const lead = result.rows[0] as { id: string; business_name: string; generated_subject: string | null } | undefined
+    if (!lead) break
+
+    try {
+      const { callDeepSeekJson, parseEmailResponse } = await import('./ai')
+      const emailData = await callDeepSeekJson(
+        `You are an independent freelance web developer writing a short follow-up email to a local business owner.
+Rules: 2-3 sentences, casual human tone, no em dashes, no corporate filler, and do not repeat the full pitch.
+Return strict JSON: {"subject":"string","body":"string"}
+Business Name: ${lead.business_name}
+Previous Subject: ${lead.generated_subject || ''}`,
+        `Generate a brief follow-up for ${lead.business_name}.`,
+        parseEmailResponse
+      )
+      await pool.query(
+        `UPDATE leads SET followup_subject = $1, followup_body = $2,
+         followup_claimed_at = NULL, followup_next_attempt_at = NULL,
+         followup_approval_status = 'pending'
+         WHERE id = $3 AND followup_claimed_at IS NOT NULL`,
+        [emailData.subject, emailData.body, lead.id]
+      )
+      prepared++
+    } catch (error) {
+      await releaseFollowup(lead.id, error)
+      rejected.push(`Lead ${lead.id} (${lead.business_name}): follow-up generation failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  return { prepared, rejected }
 }
 
 async function releaseFollowup(leadId: string, error: unknown): Promise<void> {

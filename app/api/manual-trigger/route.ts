@@ -167,6 +167,17 @@ export async function POST(request: Request) {
         }
         logs.push(`AI Emails Generated: ${generatedCount} personalized pitches created (angle-targeted).`)
       }
+
+      // Prepare due follow-up drafts for a human to review. Preparation never
+      // approves or sends a follow-up.
+      try {
+        const { prepareFollowupDrafts } = await import('@/lib/followup')
+        const draftResult = await prepareFollowupDrafts(2)
+        logs.push(`Follow-up drafts prepared: ${draftResult.prepared} awaiting human approval.`)
+        if (draftResult.rejected.length > 0) logs.push(`Follow-up draft issues: ${draftResult.rejected.join('; ')}`)
+      } catch (err: unknown) {
+        logs.push(`Follow-up draft preparation error: ${err instanceof Error ? err.message : String(err)}`)
+      }
     }
 
     if (action === 'send_outreach' || action === 'pipeline' || action === 'full_cycle') {

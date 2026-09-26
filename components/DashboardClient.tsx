@@ -129,6 +129,8 @@ function getLeadNextAction(lead: Lead): string {
   if (!lead.generated_body) return 'Generate pitch for review'
   if (!lead.initial_sent_at && lead.initial_approval_status !== 'approved') return 'Approve pitch for sending'
   if (!lead.initial_sent_at) return 'Review pitch before sending'
+  if (!lead.followup_sent_at && lead.followup_body && lead.followup_approval_status !== 'approved') return 'Approve follow-up for sending'
+  if (!lead.followup_sent_at && lead.followup_approval_status === 'approved') return 'Follow-up approved, awaiting dispatch'
   return lead.followup_sent_at ? 'Follow-up sent' : 'Monitor for reply'
 }
 
@@ -628,6 +630,30 @@ export default function DashboardClient({
       router.refresh()
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Approval update failed')
+    } finally {
+      setSendingLeadId(null)
+    }
+  }
+
+  const handleFollowupApproval = async (leadId: string, currentlyApproved = false) => {
+    const action = currentlyApproved ? 'revoke_followup' : 'approve_followup'
+    const prompt = currentlyApproved
+      ? 'Revoke this follow-up approval? No email will be sent.'
+      : 'Approve this reviewed follow-up for sending? No email will be sent by this action.'
+    if (!confirm(prompt)) return
+    setSendingLeadId(leadId)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, leadId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Follow-up approval update failed')
+      alert(data.message || (currentlyApproved ? 'Follow-up approval revoked.' : 'Follow-up approved for sending.'))
+      router.refresh()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Follow-up approval update failed')
     } finally {
       setSendingLeadId(null)
     }
@@ -1636,6 +1662,13 @@ export default function DashboardClient({
                                   {lead.initial_approval_status === 'approved' ? 'approved to send' : 'awaiting approval'}
                                 </div>
                               )}
+                              {lead.initial_sent_at && !lead.followup_sent_at && lead.followup_body && (
+                                <div className={`text-[10px] mt-1 font-mono ${
+                                  lead.followup_approval_status === 'approved' ? 'text-[#6dc86d]' : 'text-[#c8a44b]'
+                                }`}>
+                                  {lead.followup_approval_status === 'approved' ? 'follow-up approved' : 'follow-up awaiting approval'}
+                                </div>
+                              )}
                               <div className="text-[10px] text-[#c8c4bc45] mt-1 whitespace-nowrap">{getLeadNextAction(lead)}</div>
                             </td>
                             <td className="px-4 py-3"><OpportunityBadge score={lead.opportunity_score} /></td>
@@ -2243,6 +2276,30 @@ export default function DashboardClient({
               </div>
             )}
 
+            {selectedLead.followup_body && (
+              <div className="space-y-3 border-t border-[#c8c4bc12] pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-[11px] font-mono text-[#c8a44b] uppercase tracking-wider">Follow-up preview</h4>
+                    <p className="text-[11px] text-[#c8c4bc55] mt-1">Review this second message separately. It cannot send until explicitly approved.</p>
+                  </div>
+                  <span className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-mono ${
+                    selectedLead.followup_approval_status === 'approved'
+                      ? 'bg-[#6dc86d]/10 border border-[#6dc86d]/20 text-[#6dc86d]'
+                      : 'bg-[#c8a44b]/10 border border-[#c8a44b]/20 text-[#c8a44b]'
+                  }`}>
+                    {selectedLead.followup_approval_status === 'approved' ? 'Approved' : 'Awaiting review'}
+                  </span>
+                </div>
+                <div className="p-3 bg-[#141414] border border-[#c8c4bc15] rounded-lg text-xs font-mono text-[#c8c4bc]">
+                  {selectedLead.followup_subject || 'No subject generated'}
+                </div>
+                <div className="p-4 bg-[#141414] border border-[#c8c4bc15] rounded-lg text-xs leading-relaxed text-[#c8c4bc] font-mono whitespace-pre-wrap">
+                  {selectedLead.followup_body}
+                </div>
+              </div>
+            )}
+
             {/* Intel Modal Footer Action Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#c8c4bc12]">
               <div className="flex flex-wrap items-center gap-2">
@@ -2300,6 +2357,22 @@ export default function DashboardClient({
                   </button>
                 )}
                 {/* Enrich Email — for leads missing an email */}
+                {selectedLead.initial_sent_at && selectedLead.followup_body && !selectedLead.followup_sent_at && (
+                  <button
+                    type="button"
+                    onClick={() => handleFollowupApproval(selectedLead.id, selectedLead.followup_approval_status === 'approved')}
+                    disabled={sendingLeadId === selectedLead.id}
+                    className="px-3 py-1.5 bg-[#c8a44b]/10 hover:bg-[#c8a44b]/20 text-[#c8a44b] rounded-lg text-xs font-mono border border-[#c8a44b]/30 transition-colors flex items-center gap-1.5 disabled:opacity-40"
+                    title={selectedLead.followup_approval_status === 'approved' ? 'Revoke follow-up approval' : 'Approve this reviewed follow-up for a later approved-send run'}
+                  >
+                    {sendingLeadId === selectedLead.id ? (
+                      <span className="w-3 h-3 border-2 border-[#c8a44b] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send size={13} />
+                    )}
+                    <span>{selectedLead.followup_approval_status === 'approved' ? 'Revoke Follow-up' : 'Approve Follow-up'}</span>
+                  </button>
+                )}
                 {!selectedLead.email && (
                   <button
                     type="button"

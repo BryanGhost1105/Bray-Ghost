@@ -331,6 +331,45 @@ export async function POST(request: Request) {
       })
     }
 
+    if (action === 'approve_followup' || action === 'revoke_followup') {
+      if (!leadId) {
+        return NextResponse.json({ success: false, error: 'leadId is required.' }, { status: 400 })
+      }
+
+      const approving = action === 'approve_followup'
+      const result = await pool.query(
+        `UPDATE leads
+         SET followup_approval_status = $1,
+             followup_approved_at = CASE WHEN $2 THEN NOW() ELSE NULL END,
+             followup_approved_by = CASE WHEN $2 THEN 'internal-operator' ELSE NULL END
+         WHERE id = $3
+           AND status = 'sent'
+           AND followup_sent_at IS NULL
+           AND replied_at IS NULL
+           AND followup_uncertain_at IS NULL
+           AND followup_subject IS NOT NULL
+           AND followup_body IS NOT NULL
+         RETURNING id, business_name` ,
+        [approving ? 'approved' : 'pending', approving, leadId]
+      )
+
+      if (!result.rows[0]) {
+        return NextResponse.json({
+          success: false,
+          error: approving
+            ? 'No complete, unsent follow-up draft is ready for approval.'
+            : 'Follow-up was not found or has already been sent.',
+        }, { status: 404 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: approving
+          ? `Follow-up approved for ${result.rows[0].business_name}. No email was sent.`
+          : `Follow-up approval revoked for ${result.rows[0].business_name}. No email was sent.`,
+      })
+    }
+
     if (action === 'send_bulk') {
       return NextResponse.json(
         { success: false, error: 'Bulk dispatch is disabled. Approve generated drafts individually or with approve_bulk, then run the approved-send step.' },

@@ -51,6 +51,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - [ ] Prevent pipeline routes from sending unapproved leads
 - [ ] Fix timeout/duplicate-send handling
 - [ ] Add a safe dry-run mode
+- [x] Separate follow-up draft preparation, human approval, and dispatch
 - [ ] Verify `.env.local` and credentials are never committed
 
 ### Phase 1 — Trustworthy lead intelligence
@@ -134,4 +135,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.
+- Split follow-up handling into draft preparation, explicit human approval, and dispatch. The send worker now refuses to generate missing follow-up content while sending.
+- Added follow-up approval/revocation actions and a dashboard preview/control for prepared follow-ups.
+- Updated the scheduled pipeline so pending follow-up drafts are preparation work, while only complete approved follow-ups are dispatch work.
+- Verification: `npm run lint` (0 errors, existing unused-variable warnings), `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed.
+- Runtime smoke test was attempted, but local Next development server database initialization returned a connection `ErrorEvent`; no live lead state was changed by that failed request.
 - Next action: manually re-check the strongest observations on mobile, record decision-maker/channel evidence, then start permission-based conversations one at a time.

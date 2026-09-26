@@ -4,7 +4,7 @@ import { scrapeWebsite } from '@/lib/scraper'
 import { generateEmail } from '@/lib/generator'
 import { getAiApiKey } from '@/lib/ai'
 import { sendBatch } from '@/lib/sender'
-import { sendFollowUps } from '@/lib/followup'
+import { prepareFollowupDrafts, sendFollowUps } from '@/lib/followup'
 import { sourceNoWebsiteEmails } from '@/lib/emailfinder'
 import { enrichAllPendingLeads } from '@/lib/emailScraperEngine'
 import {
@@ -67,13 +67,23 @@ async function hasActionableWork(cap: { initial: number; followups: number }): P
         AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))) AS to_send,
       (SELECT COUNT(*) FROM leads WHERE status = 'sent' AND initial_sent_at <= NOW() - $2::interval
         AND followup_sent_at IS NULL AND replied_at IS NULL
+        AND followup_approval_status = 'approved'
+        AND followup_subject IS NOT NULL AND followup_body IS NOT NULL
         AND (followup_next_attempt_at IS NULL OR followup_next_attempt_at <= NOW())
-        AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))) AS to_followup`,
+        AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))) AS to_followup,
+      (SELECT COUNT(*) FROM leads WHERE status = 'sent' AND initial_sent_at <= NOW() - $2::interval
+        AND followup_sent_at IS NULL AND replied_at IS NULL
+        AND followup_approval_status = 'pending'
+        AND (followup_subject IS NULL OR followup_body IS NULL)
+        AND followup_uncertain_at IS NULL
+        AND (followup_next_attempt_at IS NULL OR followup_next_attempt_at <= NOW())
+        AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))) AS to_prepare_followup`,
     [MAX_SEO_SCORE_TO_SEND, FOLLOWUP_DELAY_INTERVAL]
   )
   const row = pending.rows[0]
   const production = Number(row.to_scrape) + Number(row.to_generate) + Number(row.to_source)
-  return (cap.initial > 0 && (production > 0 || Number(row.to_send) > 0)) || (cap.followups > 0 && Number(row.to_followup) > 0)
+  return (cap.initial > 0 && (production > 0 || Number(row.to_send) > 0)) ||
+    (cap.followups > 0 && (Number(row.to_followup) > 0 || Number(row.to_prepare_followup) > 0))
 }
 
 async function sendHealth(): Promise<StageResult> {
@@ -175,6 +185,19 @@ export async function GET(request: Request) {
         }
       }
       results.generation = { success: errors.length === 0, processed, ...(errors.length ? { error: errors.join('; ') } : {}) }
+    }
+
+    if (!exhausted(startedAt)) {
+      try {
+        const drafts = await prepareFollowupDrafts(MAX_FOLLOWUPS_PER_RUN, () => exhausted(startedAt))
+        results.followupDrafts = {
+          success: drafts.rejected.length === 0,
+          processed: drafts.prepared,
+          ...(drafts.rejected.length ? { error: drafts.rejected.join('; ') } : {}),
+        }
+      } catch (error) {
+        results.followupDrafts = { success: false, error: error instanceof Error ? error.message : String(error) }
+      }
     }
 
     if (!exhausted(startedAt)) {
