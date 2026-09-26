@@ -129,4 +129,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Created `docs/validation/port-harcourt-solar.md` with the offer hypothesis, public evidence, 10 research candidates, contact checklist, script, and success gates.
 - Inspected the first five public pages and recorded qualification notes; Solar World Electric currently looks like a benchmark/partnership target rather than a defect-led prospect.
 - Market evidence has not yet been converted into contact or payment evidence; no outreach has been sent.
-- Next action: live-check the remaining candidates and begin permission-based conversations with the strongest fit.
+- Seeded five validation prospects into the live database under the `Solar Installer` / `Port Harcourt, Nigeria` niche without adding guessed email addresses.
+- Ran the authenticated single-lead pipeline against all five prospects. Result: 5/5 reached `generated`, 5/5 have a discovered contact address, and 5/5 remain `initial_approval_status = pending`.
+- Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
+- No provider was contacted and no message was approved or sent.
+- Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.
+- Next action: manually re-check the strongest observations on mobile, record decision-maker/channel evidence, then start permission-based conversations one at a time.

@@ -1,25 +1,20 @@
+// Starter presets are intentionally aligned with the current validation market.
+// They are UI suggestions, not a hard-coded targeting requirement; users can
+// still add any custom niche/city pair from the dashboard.
 export const DEFAULT_INDUSTRIES = [
-  'Garage Door Repair',
-  'Chiropractor',
-  'Roofing Contractor',
-  'Plumbing',
-  'HVAC',
-  'Electrician',
-  'Landscaping',
-  'Pest Control',
-  'House Cleaning',
+  'Solar Installer',
+  'Solar Inverter Dealer',
+  'Renewable Energy Company',
+  'Commercial Solar Contractor',
+  'Battery Storage Provider',
 ]
 
 export const DEFAULT_CITIES = [
-  'Dallas, TX',
-  'Austin, TX',
-  'Miami, FL',
-  'Houston, TX',
-  'Phoenix, AZ',
-  'Atlanta, GA',
-  'Denver, CO',
-  'Charlotte, NC',
-  'Seattle, WA',
+  'Port Harcourt, Nigeria',
+  'Lagos, Nigeria',
+  'Abuja, Nigeria',
+  'Benin City, Nigeria',
+  'Enugu, Nigeria',
 ]
 
 export const MAX_PLACES_PAGES_PER_NICHE = 3

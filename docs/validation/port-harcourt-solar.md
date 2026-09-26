@@ -1,7 +1,7 @@
 # Commercial Validation: Port Harcourt Solar Installers
 
 **Created:** 2026-09-26  
-**Status:** hypothesis selected, prospect research started  
+**Status:** hypothesis selected, first five prospects audited, permission-based outreach not started
 **Owner:** Jephtah
 
 ## Hypothesis
@@ -86,6 +86,8 @@ If 10 well-targeted conversations produce no serious interest, change the offer 
 
 - Initial public prospect set: 10 candidates
 - Manually inspected public pages: 5
+- Coldstart pipeline run: 5/5 reached `generated`; 5/5 received a contact address; 5/5 remain `initial_approval_status=pending`
+- Audit range: opportunity scores 5–34; the strongest defect-led candidate in this batch is Solartricity, while Solar World Electric is better treated as a benchmark or partnership target
 - Conversations: 0
 - Audit walkthroughs: 0
 - Proposals: 0
