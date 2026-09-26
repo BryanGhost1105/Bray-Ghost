@@ -364,7 +364,7 @@ export default function DashboardClient({
   const [settingsLoading, setSettingsLoading] = useState(false)
 
   // Manual Trigger action state
-  const [manualRunningAction, setManualRunningAction] = useState<'discover' | 'pipeline' | 'enrich_emails' | 'send_outreach' | null>(null)
+  const [manualRunningAction, setManualRunningAction] = useState<'discover' | 'pipeline' | 'enrich_emails' | 'dry_run' | 'send_outreach' | null>(null)
   const [manualRunLogs, setManualRunLogs] = useState<string[] | null>(null)
   const [manualRunError, setManualRunError] = useState<string | null>(null)
 
@@ -681,7 +681,7 @@ export default function DashboardClient({
     setPaused(Boolean(initialSettings?.paused))
   }
 
-  const handleManualRun = async (action: 'discover' | 'pipeline' | 'enrich_emails' | 'send_outreach') => {
+  const handleManualRun = async (action: 'discover' | 'pipeline' | 'enrich_emails' | 'dry_run' | 'send_outreach') => {
     setManualRunningAction(action)
     setManualRunLogs(null)
     setManualRunError(null)
@@ -1083,6 +1083,21 @@ export default function DashboardClient({
 
             <button
               type="button"
+              onClick={() => handleManualRun('dry_run')}
+              disabled={manualRunningAction !== null}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-mono text-[#c8c4bc] border border-[#c8c4bc20] hover:border-[#c8c4bc40] hover:bg-[#1f1f1f] transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Show what the approved-send worker would do without sending or changing anything"
+            >
+              {manualRunningAction === 'dry_run' ? (
+                <span className="w-3 h-3 border-2 border-[#c8c4bc] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span className="text-[11px] text-[#c8c4bc70]">◎</span>
+              )}
+              <span>Dry Run</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => handleManualRun('send_outreach')}
               disabled={manualRunningAction !== null}
               className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-medium text-[#c8c4bc] border border-[#6dc86d]/40 bg-[#6dc86d]/10 hover:bg-[#6dc86d]/20 transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
@@ -1093,7 +1108,7 @@ export default function DashboardClient({
               ) : (
                 <span className="text-[11px]"><Send size={14} className="inline mr-1" /></span>
               )}
-              <span>Send Outreach</span>
+              <span>Send Approved</span>
             </button>
 
             <button
@@ -1101,7 +1116,7 @@ export default function DashboardClient({
               onClick={() => handleManualRun('pipeline')}
               disabled={manualRunningAction !== null}
               className="px-4 py-1.5 rounded-lg text-xs font-mono font-medium bg-[#8b3a2a] hover:bg-[#9e4331] text-[#c8c4bc] transition-all flex items-center gap-2 shadow-sm border border-[#8b3a2a] disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Audit websites, discover emails, generate AI pitches, and dispatch outreach"
+              title="Audit websites, discover emails, and generate drafts; only approved drafts can send"
             >
               {manualRunningAction === 'pipeline' ? (
                 <span className="w-3 h-3 border-2 border-[#c8c4bc] border-t-transparent rounded-full animate-spin" />
@@ -1606,6 +1621,13 @@ export default function DashboardClient({
                                 }`} />
                                 {lead.status.replace('_', ' ')}
                               </span>
+                              {lead.status === 'generated' && (
+                                <div className={`text-[10px] mt-1 font-mono ${
+                                  lead.initial_approval_status === 'approved' ? 'text-[#6dc86d]' : 'text-[#c8a44b]'
+                                }`}>
+                                  {lead.initial_approval_status === 'approved' ? 'approved to send' : 'awaiting approval'}
+                                </div>
+                              )}
                               <div className="text-[10px] text-[#c8c4bc45] mt-1 whitespace-nowrap">{getLeadNextAction(lead)}</div>
                             </td>
                             <td className="px-4 py-3"><OpportunityBadge score={lead.opportunity_score} /></td>

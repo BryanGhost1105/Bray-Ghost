@@ -30,6 +30,25 @@ export async function POST(request: Request) {
 
     const logs: string[] = []
 
+    if (action === 'dry_run') {
+      const summary = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL) AS generated,
+          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL AND initial_approval_status = 'approved') AS approved,
+          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL AND initial_approval_status <> 'approved') AS awaiting_approval,
+          COUNT(*) FILTER (WHERE status = 'sent' AND followup_sent_at IS NULL AND replied_at IS NULL AND followup_approval_status = 'approved') AS approved_followups
+        FROM leads
+      `)
+      const row = summary.rows[0]
+      logs.push('--- Safe outreach dry run ---')
+      logs.push(`Generated drafts: ${Number(row.generated || 0)}`)
+      logs.push(`Approved initial sends that the next approved-send run could dispatch: ${Number(row.approved || 0)}`)
+      logs.push(`Drafts still awaiting human approval: ${Number(row.awaiting_approval || 0)}`)
+      logs.push(`Approved follow-ups that could dispatch: ${Number(row.approved_followups || 0)}`)
+      logs.push('No email provider was contacted and no lead state was changed.')
+      return NextResponse.json({ success: true, action, logs, dryRun: true, timestamp: new Date().toISOString() })
+    }
+
     if (action === 'enrich_emails') {
       logs.push('--- Starting Deep Email Scraper & Enrichment ---')
       try {
