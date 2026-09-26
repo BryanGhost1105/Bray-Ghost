@@ -114,4 +114,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Changed the top-level dispatch label to make the approved-only behavior explicit.
 - Added a revoke-approval action so an approved draft can be returned to the pending queue before dispatch.
 - Verification: `npm run lint`, `npx tsc --noEmit`, `git diff --check`, and send-path search passed.
-- Next action: test the approval columns against the configured Neon database and add a revoke-approval action before any real send test.
+- Added a read-only schema verifier at `scripts/check-approval-schema.mjs`.
+- Confirmed the live database initially lacked all six approval columns.
+- Added and ran the scoped transactional migration at `scripts/migrate-approval-schema.mjs`.
+- Re-verified the live database: all six approval columns are present and no columns are missing.
+- No lead rows or settings were modified by the migration.
+- Next action: run the application workflow in dry-run mode, then begin one-niche market validation.
