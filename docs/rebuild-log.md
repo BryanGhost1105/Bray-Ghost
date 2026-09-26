@@ -94,6 +94,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 | 2026-09-26 | Rebuild tracked on `rebuild/phase-0-safety` | Keep safety work reviewable and separate from the baseline |
 | 2026-09-26 | Manual approval is a hard product rule | Protect sender reputation and prevent embarrassing autonomous sends |
 | 2026-09-26 | First commercial gate is one paid pilot by Oct 31 | Validate the offer before expanding the product |
+| 2026-09-26 | Provisional first market: Port Harcourt solar installers | Local access, high-value enquiries, visible public market, and strong current energy demand |
 
 ## Work log
 
@@ -125,4 +126,6 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Added `send_uncertain_at` and `followup_uncertain_at` to the schema and verified both live columns after a transactional migration.
 - Static verification: `npm run lint`, `npx tsc --noEmit`, and `git diff --check` passed.
 - Production verification: `npm run build` completed successfully after the stale build process exited.
-- Next action: choose the first niche/geography and begin the 30-prospect validation set while continuing the remaining send-safety work.
+- Created `docs/validation/port-harcourt-solar.md` with the offer hypothesis, public evidence, 10 research candidates, contact checklist, script, and success gates.
+- Market evidence has not yet been converted into contact or payment evidence; no outreach has been sent.
+- Next action: manually verify the first five candidates and record the first conversations.
