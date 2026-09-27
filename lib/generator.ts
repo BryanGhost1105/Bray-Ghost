@@ -1,6 +1,6 @@
 import { pool } from './db'
 import { isSuppressedEmail } from './suppression'
-import { callDeepSeekJson, parseEmailResponse } from './ai'
+import { callDeepSeekJson, parseEmailResponse, type AiEmailContent } from './ai'
 
 interface AuditIssue {
   title: string
@@ -28,6 +28,25 @@ interface LeadForGeneration {
   ux_score: number | null
   opportunity_score: number | null
   audit_details: AuditDetails | null
+}
+
+function buildPermissionFirstFallback(lead: LeadForGeneration): AiEmailContent {
+  const fact = lead.audit_details?.verifiedFacts?.[0]
+  const observation = fact || 'the public enquiry path could be clearer for someone trying to ask about a solar system'
+  const website = lead.website?.replace(/^https?:\/\//i, '').replace(/\/$/, '') || 'your public enquiry path'
+  return {
+    subject: `Quick question about ${lead.business_name}'s website`,
+    body: `Hi, I was looking at ${website} and noticed the following on the public page: ${observation} I may be missing context, so I do not want to assume it is a problem. Would it be useful if I sent a short note showing the observation and one possible fix?\n\nBryan`,
+  }
+}
+
+function validatePermissionFirstDraft(emailData: AiEmailContent): void {
+  const draftText = `${emailData.subject}\n${emailData.body}`.toLowerCase()
+  const permissionRequest = /\b(can i|may i|should i|would it be useful|mind if|is it okay|okay if)\b/.test(draftText)
+  const unsupportedClaim = /\b(guarantee|guaranteed|double your|triple your|more leads|lost leads|increase revenue|rank #?1|number one on google|significantly|boost|improve|enhance|capture more|more customers|more clients|more inquiries|local search ranking|show up effectively|potential clients|prepared|put together|attached|one-page|audit|book a call|schedule a call)\b/.test(draftText)
+  if (!permissionRequest || unsupportedClaim) {
+    throw new Error('Generated draft failed the permission-first or unsupported-claim safety check.')
+  }
 }
 
 export async function generateEmail(leadId: string): Promise<boolean> {
@@ -132,17 +151,18 @@ ${topIssuesSummary}
 ${quickWinsSummary}
 `
 
-  const emailData = await callDeepSeekJson(
-    systemPrompt,
-    `Write the personalized outreach email for ${businessName}.`,
-    parseEmailResponse
-  )
-
-  const draftText = `${emailData.subject}\n${emailData.body}`.toLowerCase()
-  const permissionRequest = /\b(can i|may i|should i|would it be useful|mind if|is it okay|okay if)\b/.test(draftText)
-  const unsupportedClaim = /\b(guarantee|guaranteed|double your|triple your|more leads|lost leads|increase revenue|rank #?1|number one on google)\b/.test(draftText)
-  if (!permissionRequest || unsupportedClaim) {
-    throw new Error('Generated draft failed the permission-first or unsupported-claim safety check.')
+  let emailData: AiEmailContent
+  try {
+    emailData = await callDeepSeekJson(
+      systemPrompt,
+      `Write the personalized outreach email for ${businessName}.`,
+      parseEmailResponse
+    )
+    validatePermissionFirstDraft(emailData)
+  } catch {
+    // A deterministic draft keeps the research workflow usable when the free
+    // AI quota is exhausted or the model returns an unsafe sales claim.
+    emailData = buildPermissionFirstFallback(lead)
   }
 
   await pool.query(

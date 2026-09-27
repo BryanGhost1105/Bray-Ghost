@@ -138,6 +138,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Tightened the AI generator to produce permission-first first contacts and added a runtime safety check that rejects drafts without a permission request or with unsupported lead/revenue/ranking claims. Existing drafts remain pending until regenerated and reviewed.
 - Added `generation_policy_version` enforcement so legacy drafts cannot be approved or sent until regenerated under `permission-v1`.
 - Draft regeneration was attempted against the eight generated validation leads; Gemini rejected the batch with its free-tier 429 quota (5 requests/minute). No drafts were changed and no messages were sent.
+- Added a deterministic, fact-grounded permission-first fallback draft for missing/quota-exhausted/unsafe AI responses. Runtime smoke test regenerated Solartricity successfully while Gemini quota was exhausted; the stored draft remained pending with `generation_policy_version = permission-v1`.
+- Tightened the validator to reject invented artifacts such as “I prepared a one-page note” and unsupported impact claims. Sombreiro's draft was regenerated and now asks permission without claiming a note already exists.
+- Added `scripts/check-permission-drafts.mjs`; live verification passed for all 8 generated validation drafts (`8/8` permission request, `0/8` banned-claim failures).
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.

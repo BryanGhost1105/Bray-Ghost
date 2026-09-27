@@ -18,6 +18,7 @@ export function getAiApiKey(): string | null {
   return process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.DEEPSEEK_API_KEY || null
 }
 export class AiUnavailableError extends Error {}
+export class AiQuotaError extends AiUnavailableError {}
 
 function isGeminiKey(key: string): boolean {
   // Google AI Studio / Gemini keys typically start with AQ... or AIza...
@@ -65,6 +66,10 @@ async function callGeminiApi<T>(
       throw new AiUnavailableError(
         `Gemini API auth/config error (${res.status}): ${await res.text()}`
       )
+    }
+
+    if (res.status === 429) {
+      throw new AiQuotaError(`Gemini API quota/rate limit reached (${res.status}): ${await res.text()}`)
     }
 
     if (!res.ok) {
@@ -121,6 +126,9 @@ async function callDeepSeekApi<T>(
         `DeepSeek API auth/config error (${res.status}): ${await res.text()}`
       )
     }
+    if (res.status === 429) {
+      throw new AiQuotaError(`DeepSeek API quota/rate limit reached (${res.status}): ${await res.text()}`)
+    }
     if (!res.ok) {
       throw new Error(`DeepSeek API error: ${res.status} ${await res.text()}`)
     }
@@ -166,7 +174,7 @@ export async function callDeepSeekJson<T>(
         return await callDeepSeekApi(apiKey, systemPrompt, userMessage, parse)
       }
     } catch (err) {
-      if (err instanceof AiUnavailableError) throw err
+      if (err instanceof AiQuotaError || err instanceof AiUnavailableError) throw err
       lastError = err instanceof Error ? err.message : String(err)
     }
   }
