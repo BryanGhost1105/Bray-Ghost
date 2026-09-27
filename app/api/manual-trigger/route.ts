@@ -34,8 +34,8 @@ export async function POST(request: Request) {
       const summary = await pool.query(`
         SELECT
           COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL) AS generated,
-          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL AND initial_approval_status = 'approved') AS approved,
-          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL AND initial_approval_status <> 'approved') AS awaiting_approval,
+          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL AND generation_policy_version = 'permission-v1' AND initial_approval_status = 'approved') AS approved,
+          COUNT(*) FILTER (WHERE status = 'generated' AND initial_sent_at IS NULL AND (generation_policy_version IS DISTINCT FROM 'permission-v1' OR initial_approval_status <> 'approved')) AS awaiting_approval,
           COUNT(*) FILTER (WHERE status = 'sent' AND followup_sent_at IS NULL AND replied_at IS NULL AND followup_approval_status = 'approved') AS approved_followups
         FROM leads
       `)

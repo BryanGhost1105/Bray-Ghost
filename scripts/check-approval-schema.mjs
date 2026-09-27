@@ -15,6 +15,7 @@ const expected = [
   'followup_approved_at',
   'followup_approved_by',
   'followup_uncertain_at',
+  'generation_policy_version',
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })

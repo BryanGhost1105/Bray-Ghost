@@ -65,6 +65,7 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approval_status TEXT NOT NULL DEFAULT 'pending';
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approved_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approved_by TEXT;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS generation_policy_version TEXT;
       ALTER TABLE settings ADD COLUMN IF NOT EXISTS replies_count INTEGER DEFAULT 0;
       UPDATE leads SET unsubscribe_token = gen_random_uuid()::text WHERE unsubscribe_token IS NULL;
 

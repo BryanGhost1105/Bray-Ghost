@@ -49,6 +49,7 @@ export interface Lead {
   audit_details: AuditDetails | null
   generated_subject: string | null
   generated_body: string | null
+  generation_policy_version: string | null
   initial_approval_status: string
   initial_approved_at: string | null
   initial_approved_by: string | null
@@ -143,6 +144,7 @@ function getLeadNextAction(lead: Lead): string {
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
   if (!lead.generated_body) return 'Generate pitch for review'
+  if (!lead.initial_sent_at && lead.generation_policy_version !== 'permission-v1') return 'Regenerate permission-first draft'
   if (!lead.initial_sent_at && lead.initial_approval_status !== 'approved') return 'Approve pitch for sending'
   if (!lead.initial_sent_at) return 'Review pitch before sending'
   if (!lead.followup_sent_at && lead.followup_body && lead.followup_approval_status !== 'approved') return 'Approve follow-up for sending'

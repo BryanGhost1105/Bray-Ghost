@@ -48,6 +48,7 @@ async function initDb() {
         followup_approval_status text not null default 'pending',
         followup_approved_at timestamptz,
         followup_approved_by text,
+        generation_policy_version text,
         initial_sent_at timestamptz,
         initial_opened_at timestamptz,
         initial_provider_id text,

@@ -282,6 +282,7 @@ export async function POST(request: Request) {
                initial_approved_by = 'internal-operator'
            WHERE id = $1
              AND status = 'generated'
+             AND generation_policy_version = 'permission-v1'
              AND generated_subject IS NOT NULL
              AND generated_body IS NOT NULL
              AND initial_sent_at IS NULL

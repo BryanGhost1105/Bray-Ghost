@@ -19,6 +19,7 @@ try {
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approved_at TIMESTAMP WITH TIME ZONE;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_approved_by TEXT;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_uncertain_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS generation_policy_version TEXT;
     CREATE TABLE IF NOT EXISTS lead_interactions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,

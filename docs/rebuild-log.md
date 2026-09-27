@@ -135,6 +135,9 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Completed the public research pass for the remaining five candidates and added them to the live cohort. The second pipeline run produced 3 more generated audits with contact addresses; 2 sites returned fetch failures and remain manual-review items rather than being labelled defective.
 - Current cohort evidence: 10 prospects researched, 8 generated audit states, 8 stored contact addresses, 0 approved sends, 0 conversations, and 0 paid pilots.
 - Current contact priority from measured evidence: Solartricity (opportunity 34), Rafrank Integrated (23), Khariz Energy (15), then Dayli Energy (13). TECIL Solar is currently a benchmark/partnership target.
+- Tightened the AI generator to produce permission-first first contacts and added a runtime safety check that rejects drafts without a permission request or with unsupported lead/revenue/ranking claims. Existing drafts remain pending until regenerated and reviewed.
+- Added `generation_policy_version` enforcement so legacy drafts cannot be approved or sent until regenerated under `permission-v1`.
+- Draft regeneration was attempted against the eight generated validation leads; Gemini rejected the batch with its free-tier 429 quota (5 requests/minute). No drafts were changed and no messages were sent.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.

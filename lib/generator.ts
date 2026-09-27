@@ -88,7 +88,7 @@ export async function generateEmail(leadId: string): Promise<boolean> {
 
   const angleGuidelines: Record<string, string> = {
     mobile: `Focus on the website's smartphone user experience. If there is a missing tap-to-call link or viewport issue, mention it plainly as a quick fix to make calling and browsing effortless for customers on phones.`,
-    conversion: `Focus on quote requests and lead capture. If a contact link is broken, or if there is no quick estimate/quote form, mention that fixing this friction point helps turn web visitors into paying jobs.`,
+    conversion: `Focus on quote requests and lead capture. If there is no quick estimate/quote form or direct inquiry path, describe that observed friction without claiming it caused lost enquiries.`,
     design: `Focus on visual trust and credibility. If the footer copyright date is years out of date, or if they are running on a builder subdomain, or lack a clear hero call-to-action, mention it naturally as a clean modernization opportunity.`,
     seo: `Focus on Google local search presence. Mention missing LocalBusiness schema markup, meta description, or title tag that helps them rank properly against local competitors.`,
     performance: `Focus on fast page loading for mobile customers. If a real PageSpeed score or load time is listed in Verified Measured Facts, cite that exact number verbatim.`,
@@ -100,7 +100,7 @@ export async function generateEmail(leadId: string): Promise<boolean> {
 
   const senderName = process.env.SENDER_NAME || 'Bryan Allen'
 
-  const systemPrompt = `You are ${senderName}, an independent freelance web developer reaching out to local business owners. Write a short, highly personalized cold email.
+  const systemPrompt = `You are ${senderName}, an independent freelance web developer reaching out to local business owners. Write a short, highly personalized permission-first email.
 
 Strict Tone & Style Rules:
 1. NO em dashes (—) anywhere in the text. Use standard commas or periods.
@@ -111,9 +111,11 @@ Strict Tone & Style Rules:
    - If you cite a speed or metric (e.g. load time, PageSpeed score, copyright year), you MUST cite the exact number provided in 'Verified Measured Facts' verbatim.
    - If no specific measured number is listed for a point, describe the observed technical issue factually without fabricating numbers.
 5. Opening line: Start with a natural, genuine observation about their website or local presence.
-6. Length: Exactly 3 to 5 clear, human sentences.
-7. Sign off naturally with "${senderName.split(' ')[0]}" or "${senderName}".
-8. Reads like a real web developer took two minutes to look at their site and typed a note by hand.
+6. The email must ask permission to send a short note or audit. Do not attach an audit, make a proposal, ask for a sale, or offer a call before permission is granted.
+7. Describe the observation as a possibility for customer friction, never as proven lost leads, rankings, revenue, or conversion impact.
+8. Length: Exactly 3 to 5 clear, human sentences.
+9. Sign off naturally with "${senderName.split(' ')[0]}" or "${senderName}".
+10. Reads like a real web developer took two minutes to look at the site and typed a note by hand.
 9. Return STRICT JSON only in this exact format, with no other text, markdown fences, or explanation:
 {
   "subject": "string",
@@ -136,10 +138,18 @@ ${quickWinsSummary}
     parseEmailResponse
   )
 
+  const draftText = `${emailData.subject}\n${emailData.body}`.toLowerCase()
+  const permissionRequest = /\b(can i|may i|should i|would it be useful|mind if|is it okay|okay if)\b/.test(draftText)
+  const unsupportedClaim = /\b(guarantee|guaranteed|double your|triple your|more leads|lost leads|increase revenue|rank #?1|number one on google)\b/.test(draftText)
+  if (!permissionRequest || unsupportedClaim) {
+    throw new Error('Generated draft failed the permission-first or unsupported-claim safety check.')
+  }
+
   await pool.query(
     `UPDATE leads SET
        generated_subject = $1,
        generated_body = $2,
+       generation_policy_version = 'permission-v1',
        initial_approval_status = 'pending',
        initial_approved_at = NULL,
        initial_approved_by = NULL,
