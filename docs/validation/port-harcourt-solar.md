@@ -60,6 +60,7 @@ Do not copy a contact address into a campaign until it has been manually checked
 ## Validation script
 
 The detailed channel scripts and outcome definitions are in [outreach-playbook.md](outreach-playbook.md).
+The first three copy-ready permission requests are in [first-contact-queue.md](first-contact-queue.md); they are prepared but not sent.
 
 First contact should request permission to send the observation instead of attaching a long audit immediately:
 

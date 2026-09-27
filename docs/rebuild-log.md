@@ -141,6 +141,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Added a deterministic, fact-grounded permission-first fallback draft for missing/quota-exhausted/unsafe AI responses. Runtime smoke test regenerated Solartricity successfully while Gemini quota was exhausted; the stored draft remained pending with `generation_policy_version = permission-v1`.
 - Tightened the validator to reject invented artifacts such as “I prepared a one-page note” and unsupported impact claims. Sombreiro's draft was regenerated and now asks permission without claiming a note already exists.
 - Added `scripts/check-permission-drafts.mjs`; live verification passed for all 8 generated validation drafts (`8/8` permission request, `0/8` banned-claim failures).
+- Prepared an unsent first-contact queue for Solartricity, Rafrank Integrated, and Khariz with source URLs, channel choices, re-check conditions, and permission-first copy. No interaction was recorded because no message has been sent.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.
