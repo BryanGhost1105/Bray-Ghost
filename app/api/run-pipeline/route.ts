@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { pool, ensureSchema } from '@/lib/db'
 import { scrapeWebsite } from '@/lib/scraper'
 import { generateEmail } from '@/lib/generator'
-import { getAiApiKey } from '@/lib/ai'
 import { sendBatch } from '@/lib/sender'
 import { prepareFollowupDrafts, sendFollowUps } from '@/lib/followup'
 import { sourceNoWebsiteEmails } from '@/lib/emailfinder'
@@ -167,21 +166,18 @@ export async function GET(request: Request) {
     if (!exhausted(startedAt)) {
       const errors: string[] = []
       let processed = 0
-      if (!getAiApiKey()) errors.push('AI_API_KEY or GEMINI_API_KEY is not configured.')
-      else {
-        const leads = await pool.query(
-          `SELECT id FROM leads WHERE status = 'scraped' AND email IS NOT NULL
-           AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
-           ORDER BY opportunity_score DESC NULLS LAST, seo_score ASC NULLS LAST LIMIT $1`,
-          [MAX_GENERATES_PER_RUN]
-        )
-        for (const lead of leads.rows) {
-          if (exhausted(startedAt)) break
-          try {
-            if (await generateEmail(lead.id)) processed++
-          } catch (error) {
-            errors.push(`Lead ${lead.id}: ${error instanceof Error ? error.message : String(error)}`)
-          }
+      const leads = await pool.query(
+        `SELECT id FROM leads WHERE status = 'scraped' AND email IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))
+         ORDER BY opportunity_score DESC NULLS LAST, seo_score ASC NULLS LAST LIMIT $1`,
+        [MAX_GENERATES_PER_RUN]
+      )
+      for (const lead of leads.rows) {
+        if (exhausted(startedAt)) break
+        try {
+          if (await generateEmail(lead.id)) processed++
+        } catch (error) {
+          errors.push(`Lead ${lead.id}: ${error instanceof Error ? error.message : String(error)}`)
         }
       }
       results.generation = { success: errors.length === 0, processed, ...(errors.length ? { error: errors.join('; ') } : {}) }

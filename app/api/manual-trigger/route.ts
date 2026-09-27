@@ -145,6 +145,22 @@ export async function POST(request: Request) {
       // 3. AI Email Generation for 'scraped' leads (uses audit intelligence)
       const aiKey = getAiApiKey()
       if (!aiKey) {
+        const fallbackLeads = await pool.query(
+          `SELECT l.id, l.business_name FROM leads l
+           WHERE l.status = 'scraped' AND l.email IS NOT NULL
+           ORDER BY l.opportunity_score DESC NULLS LAST, l.seo_score ASC NULLS LAST
+           LIMIT $1`,
+          [MAX_GENERATES_PER_RUN]
+        )
+        let fallbackCount = 0
+        for (const lead of fallbackLeads.rows) {
+          try {
+            if (await generateEmail(lead.id)) fallbackCount++
+          } catch (err: unknown) {
+            logs.push(`Fallback draft error on ${lead.business_name}: ${err instanceof Error ? err.message : String(err)}`)
+          }
+        }
+        logs.push(`Permission-first fallback drafts generated: ${fallbackCount}.`)
         logs.push('⚠️ AI API Key missing: Cannot generate emails until AI_API_KEY or GEMINI_API_KEY is configured.')
       } else {
         const scrapedLeads = await pool.query(
