@@ -2154,7 +2154,7 @@ export default function DashboardClient({
                     <h4 className="text-xs font-medium text-white">Email Scraper &amp; Enrichment</h4>
                     <p className="text-[11px] text-[#c8c4bc70]">
                       {selectedLead.email
-                        ? `Enriched from ${selectedLead.email_source || 'website'} with ${selectedLead.email_confidence || 'HIGH'} confidence.`
+                        ? `Enriched from ${selectedLead.email_source || 'unspecified source'} with ${selectedLead.email_confidence || 'UNKNOWN'} confidence.`
                         : 'No email currently stored. Run deep scraping on website, schema & search graph.'}
                     </p>
                   </div>
@@ -2179,11 +2179,11 @@ export default function DashboardClient({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-2 border-t border-[#c8c4bc10] text-[11px] font-mono text-[#c8c4bc70]">
                   <div>
                     <span className="text-[#c8c4bc40]">Confidence: </span>
-                    <span className="text-white font-medium">{selectedLead.email_confidence || 'HIGH'}</span>
+                    <span className={`font-medium ${selectedLead.email_confidence === 'HIGH' ? 'text-[#6dc86d]' : 'text-[#e8b85d]'}`}>{selectedLead.email_confidence || 'UNKNOWN'}</span>
                   </div>
                   <div>
                     <span className="text-[#c8c4bc40]">Source: </span>
-                    <span className="text-white">{selectedLead.email_source || 'website_contact'}</span>
+                    <span className="text-white">{selectedLead.email_source || 'unspecified'}</span>
                   </div>
                   <div>
                     <span className="text-[#c8c4bc40]">Lead Status: </span>
@@ -2194,9 +2194,14 @@ export default function DashboardClient({
                     {selectedLead.email_source_url ? (
                       <a href={selectedLead.email_source_url} target="_blank" rel="noopener noreferrer" className="text-[#c8a44b] hover:underline truncate inline-block max-w-full align-bottom" title={selectedLead.email_source_url}>Open source</a>
                     ) : (
-                      <span className="text-white">Stored contact data</span>
+                      <span className="text-[#e8b85d]">No linked source — verify manually</span>
                     )}
                   </div>
+                </div>
+              )}
+              {selectedLead.email && (selectedLead.email_confidence !== 'HIGH' || !selectedLead.email_source_url) && (
+                <div className="rounded-md border border-[#e8b85d]/25 bg-[#e8b85d]/5 px-3 py-2 text-[11px] text-[#e8b85d]">
+                  Do not contact this address yet. Confirm the recipient on the business's current website or public business profile before recording or sending an attempt.
                 </div>
               )}
             </div>

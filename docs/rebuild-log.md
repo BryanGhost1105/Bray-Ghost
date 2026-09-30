@@ -147,6 +147,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Re-checked the first-contact queue on 2026-09-30. Rafrank remains the strongest cleared candidate pending a final visual/mobile check; Khariz requires a diagnostic mobile handoff check; Solartricity was placed on hold because its currently indexed contact address conflicts with the stored address. No message was sent.
 - Corrected the dashboard's contact-candidate count and label: server and modal filters now agree, exclude sent/replied/unsubscribed leads, and explicitly require human source and draft review. The UI no longer calls every discovered address a verified email.
 - Added a confirmation-gated manual-attempt recorder beside each unsent draft. It records an `attempted` interaction only after the user confirms they sent the message independently; it never invokes a provider or changes approval state.
+- Removed the unsafe implicit `HIGH` confidence display for contacts with missing confidence data. The Intel profile now shows `UNKNOWN` and warns when the address lacks explicit high confidence or a linked source URL.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.
