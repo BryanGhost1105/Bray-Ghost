@@ -811,6 +811,32 @@ export default function DashboardClient({
     }
   }
 
+  const handleRecordManualAttempt = async (leadId: string) => {
+    const confirmed = window.confirm('Confirm that you already sent this message manually after re-checking the recipient and source page. Coldstart will only record the event; it will not send anything.')
+    if (!confirmed) return
+
+    setInteractionLoading(true)
+    try {
+      const res = await fetch('/api/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId,
+          channel: 'email',
+          outcome: 'attempted',
+          note: 'Manual first contact sent after source and recipient re-check.',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not record manual attempt')
+      router.refresh()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Could not record manual attempt')
+    } finally {
+      setInteractionLoading(false)
+    }
+  }
+
   const handleEnrichLead = async (leadId: string) => {
     setEnrichingLeadId(leadId)
     setLeadEnrichFeedback(null)
@@ -2366,6 +2392,19 @@ export default function DashboardClient({
                     {selectedLead.generated_body || 'No body generated'}
                   </div>
                 </div>
+                {selectedLead.email && !selectedLead.initial_sent_at && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[#c8a44b]/20 bg-[#c8a44b]/5 p-3">
+                    <p className="text-[11px] text-[#c8c4bc70]">After you independently send this message, record the real-world attempt here. This button never sends email.</p>
+                    <button
+                      type="button"
+                      onClick={() => handleRecordManualAttempt(selectedLead.id)}
+                      disabled={interactionLoading}
+                      className="shrink-0 px-3 py-2 border border-[#c8a44b]/40 text-[#c8a44b] hover:bg-[#c8a44b]/10 rounded-md text-[10px] font-mono disabled:opacity-40"
+                    >
+                      I sent this manually — record attempt
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
