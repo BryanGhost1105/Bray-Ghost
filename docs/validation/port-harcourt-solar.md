@@ -1,7 +1,7 @@
 # Commercial Validation: Port Harcourt Solar Installers
 
 **Created:** 2026-09-26  
-**Status:** hypothesis selected, first five prospects audited, permission-based outreach not started
+**Status:** hypothesis selected, 10 prospects audited/researched, 10 additional public-source candidates queued for verification, permission-based outreach not started
 **Owner:** Jephtah
 
 ## Hypothesis
@@ -18,7 +18,7 @@ This is a validation hypothesis, not a promise of rankings, leads, or revenue.
 
 - The Nigerian Investment Promotion Commission describes businesses, hospitals, universities, and factories as active buyers of commercial and industrial rooftop solar, driven partly by unreliable grid power and diesel costs. [NIPC energy sector overview](https://nipc.gov.ng/sectors/energy)
 - The IEA's 2026 electricity outlook describes Nigeria's solar PV growth as being on a sharp upward trajectory and forecasts continued electricity-demand growth. [IEA Electricity 2026](https://iea.blob.core.windows.net/assets/88bb4abe-0308-42f9-a46f-c776a9528522/Electricity_2026.pdf)
-- Public search results show a sufficiently deep local market with companies serving Port Harcourt across residential, commercial, industrial, and battery-storage segments.
+- Public search results show a sufficiently deep local market with companies serving Port Harcourt across residential, commercial, industrial, maintenance, and battery-storage segments. The research pool now contains 20 candidates; only the original 10 have entered Coldstart's audited cohort.
 
 ## Initial prospect pool
 
@@ -36,6 +36,23 @@ These are research candidates only. Before any outreach, manually verify the bus
 | 8 | TECIL Solar | [tecilsolar.com](https://www.tecilsolar.com/) | Established multi-location operator; test branch-specific enquiry routing | WhatsApp / phone |
 | 9 | Rafrank Integrated | [rafrankltd.com/solar.php](https://rafrankltd.com/solar.php) | Solar and industrial services are presented together; test whether solar enquiries are easy to isolate | Phone / email |
 | 10 | Goshenvilla | [goshenvilla.com/contact-us](https://goshenvilla.com/contact-us/) | Port Harcourt renewable-energy positioning; test form clarity and proof near the enquiry action | Phone / email |
+
+### Expanded research pool — public-source candidates
+
+These additional candidates are not yet seeded or contact-cleared. The source links establish that they serve Port Harcourt or the surrounding Rivers market; contact details, decision-makers, and website observations must still be verified directly before use.
+
+| # | Business | Public source | First observation to verify | Likely channel |
+|---:|---|---|---|---|
+| 11 | HakunaSolar | [LinkedIn company profile](https://ng.linkedin.com/company/hakuna-tech-limited) · [hakunasolar.com](https://hakunasolar.com) | Port Harcourt renewable-energy operator; test whether the installation/distribution site gives a clear quote path | Website / LinkedIn |
+| 12 | SolarBolts | [LinkedIn company profile](https://ng.linkedin.com/company/solarbolts12) · [solarbolts.com](https://solarbolts.com) | Solar water-pumping and installation specialist; test whether commercial project visitors reach a focused enquiry action | Website / phone |
+| 13 | DB Energy | [Port Harcourt location page](https://www.dbenergy.ng/locations/port-harcourt) | Multi-service solar operator with a local service page; test whether the quote CTA routes to a human | Website / email |
+| 14 | Marrot Energy | [marrotenergy.com](https://marrotenergy.com) | Port Harcourt renewable-energy company with residential, commercial, and industrial services; test service-specific enquiry routing | Email / phone |
+| 15 | PET FEB International | [petfeb.com](https://petfeb.com) | Port Harcourt solar installer with installation, off-grid, and training offers; test whether a buyer can distinguish purchase from training enquiries | Website / email |
+| 16 | SprintQuest Energy Services | [BusinessList Port Harcourt listing](https://www.businesslist.com.ng/category/solar-energy/city%3Aport-harcourt) | Local renewable-energy listing with public business presence; verify the current website and contact route | Phone / directory |
+| 17 | Unitronix Global | [BusinessList Port Harcourt listing](https://www.businesslist.com.ng/category/solar-energy/city%3Aport-harcourt) | Power engineering and solar solutions listing; verify service focus and current online enquiry path | Phone / directory |
+| 18 | ECAFGOLDEN SOLAR | [About page](https://www.ecafgoldensolar.com.ng/about) | Rivers-founded solar engineering company serving Port Harcourt; test whether institutional buyers have a distinct enquiry flow | Website / email |
+| 19 | EnergyCare | [LinkedIn company profile](https://ng.linkedin.com/company/energycare1) | Port Harcourt energy installation and maintenance network; test whether maintenance enquiries are easy to start online | Website / LinkedIn |
+| 20 | Solution Energy and Engineering Services | [LinkedIn company profile](https://ng.linkedin.com/company/solution-energy-and-engineering-services-ltd) · [solutionenergylimited.com](https://www.solutionenergylimited.com) | Engineering company with renewable-energy services; test whether solar visitors are separated from broader technical services | Website / LinkedIn |
 
 ## Research checklist for every prospect
 
