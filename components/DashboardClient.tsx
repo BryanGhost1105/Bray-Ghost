@@ -143,6 +143,7 @@ function getLeadNextAction(lead: Lead): string {
   if (lead.replied_at) return 'Reply received'
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
+  if (lead.email_confidence !== 'HIGH' || !lead.email_source_url) return 'Verify contact source before approval'
   if (!lead.generated_body) return 'Generate pitch for review'
   if (!lead.initial_sent_at && lead.generation_policy_version !== 'permission-v1') return 'Regenerate permission-first draft'
   if (!lead.initial_sent_at && lead.initial_approval_status !== 'approved') return 'Approve pitch for sending'

@@ -285,6 +285,8 @@ export async function POST(request: Request) {
              AND generation_policy_version = 'permission-v1'
              AND generated_subject IS NOT NULL
              AND generated_body IS NOT NULL
+             AND email_confidence = 'HIGH'
+             AND email_source_url IS NOT NULL
              AND initial_sent_at IS NULL
              AND replied_at IS NULL
              AND status <> 'unsubscribed'

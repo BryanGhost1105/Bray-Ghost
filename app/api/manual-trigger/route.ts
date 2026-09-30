@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}))
-    const action = body.action || 'pipeline' // 'discover' | 'pipeline' | 'full_cycle' | 'enrich_emails'
+    const action = body.action || 'pipeline' // research-only: 'discover' | 'pipeline' | 'full_cycle' | 'enrich_emails'; dispatch is explicit
 
     const logs: string[] = []
 
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'pipeline' || action === 'full_cycle') {
-      logs.push('--- Starting Outreach Pipeline ---')
+      logs.push('--- Starting Research & Draft Pipeline (no dispatch) ---')
 
       // 1. Scrape & Audit 'new' leads (6-dimensional website audit + email extraction)
       const newLeads = await pool.query(
@@ -196,8 +196,8 @@ export async function POST(request: Request) {
       }
     }
 
-    if (action === 'send_outreach' || action === 'pipeline' || action === 'full_cycle') {
-      // Sending generated emails with human mimicry delays (20-40s) up to daily cap
+    if (action === 'send_outreach') {
+      // Sending is an explicit, separate operator action. Research and draft generation never dispatch.
       try {
         const sendResult = await sendBatch(MAX_SENDS_PER_RUN)
         if (sendResult.sent > 0) {
@@ -224,9 +224,11 @@ export async function POST(request: Request) {
         }
       }
 
-      // Update last_run_at
-      await pool.query('UPDATE settings SET last_run_at = NOW() WHERE id = 1')
     }
+
+    // Record every completed manual research or dispatch run, including
+    // research-only runs that intentionally never enter the send branch.
+    await pool.query('UPDATE settings SET last_run_at = NOW() WHERE id = 1')
 
     return NextResponse.json({
       success: true,
