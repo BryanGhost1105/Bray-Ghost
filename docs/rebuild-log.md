@@ -52,7 +52,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - [ ] Fix timeout/duplicate-send handling
 - [ ] Add a safe dry-run mode
 - [x] Separate follow-up draft preparation, human approval, and dispatch
-- [ ] Verify `.env.local` and credentials are never committed
+- [x] Verify `.env.local` and credentials are never committed (`node scripts/check-repository-hygiene.mjs`)
 
 ### Phase 1 — Trustworthy lead intelligence
 
@@ -148,6 +148,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Corrected the dashboard's contact-candidate count and label: server and modal filters now agree, exclude sent/replied/unsubscribed leads, and explicitly require human source and draft review. The UI no longer calls every discovered address a verified email.
 - Added a confirmation-gated manual-attempt recorder beside each unsent draft. It records an `attempted` interaction only after the user confirms they sent the message independently; it never invokes a provider or changes approval state.
 - Removed the unsafe implicit `HIGH` confidence display for contacts with missing confidence data. The Intel profile now shows `UNKNOWN` and warns when the address lacks explicit high confidence or a linked source URL.
+- Added and ran `scripts/check-repository-hygiene.mjs`:  tracked filenames and `HEAD` contents were scanned for environment files, private keys, database URLs with passwords, and common API-token patterns; the check passed.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.
