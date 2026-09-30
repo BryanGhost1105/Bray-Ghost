@@ -45,19 +45,19 @@ If a gate fails, reduce scope or change the offer before adding features.
 
 ### Phase 0 — Safety and observability
 
-- [ ] Map every route that can send email
-- [ ] Add explicit research-only and send-enabled modes
-- [ ] Add manual approval status and approval audit trail
-- [ ] Prevent pipeline routes from sending unapproved leads
-- [ ] Fix timeout/duplicate-send handling
-- [ ] Add a safe dry-run mode
+- [x] Map every route that can send email
+- [x] Add explicit research-only and send-enabled modes
+- [x] Add manual approval status and approval audit trail
+- [x] Prevent pipeline routes from sending unapproved leads
+- [x] Fix timeout/duplicate-send handling
+- [x] Add a safe dry-run mode
 - [x] Separate follow-up draft preparation, human approval, and dispatch
 - [x] Verify `.env.local` and credentials are never committed (`node scripts/check-repository-hygiene.mjs`)
 
 ### Phase 1 — Trustworthy lead intelligence
 
-- [ ] Store contact source, confidence, and verification method
-- [ ] Reject low-confidence contacts from approval by default
+- [x] Store contact source, confidence, and verification method
+- [x] Reject low-confidence contacts from approval by default
 - [ ] Preserve source URLs for every audit observation
 - [ ] Validate redirect destinations during crawling
 - [ ] Protect AI prompts from untrusted website instructions
