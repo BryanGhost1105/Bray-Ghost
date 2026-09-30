@@ -1345,7 +1345,7 @@ export default function DashboardClient({
             <span className="text-2xl font-light font-mono text-white tabular-nums">{stats.audited_total}</span>
           </button>
 
-          {/* 3. Ready to Contact */}
+          {/* 3. Contact Candidates */}
           <button
             type="button"
             onClick={() => {
@@ -1353,10 +1353,10 @@ export default function DashboardClient({
               setStatsModalSearch('')
             }}
             className="bg-[#1a1a1a] border border-[#c8c4bc15] hover:border-[#6dc86d]/60 hover:bg-[#202020] rounded-xl p-4 flex flex-col justify-between space-y-2 text-left transition-all group cursor-pointer"
-            title="Click to view leads with verified emails ready for outreach"
+            title="Click to view contact candidates requiring human review"
           >
             <div className="flex items-center justify-between w-full">
-              <span className="text-[11px] text-[#c8c4bc70] group-hover:text-[#6dc86d]">Ready to Contact</span>
+              <span className="text-[11px] text-[#c8c4bc70] group-hover:text-[#6dc86d]">Contact Candidates</span>
               <span className="text-[10px] font-mono text-[#c8c4bc30] group-hover:text-[#6dc86d]"><RefreshCw size={14} /></span>
             </div>
             <span className="text-2xl font-light font-mono text-white tabular-nums">{stats.ready_to_contact}</span>
@@ -2839,7 +2839,7 @@ export default function DashboardClient({
                   <h3 className="text-base font-semibold text-white">
                     {statsModalType === 'prospect_pool' && 'Prospect Pool Directory'}
                     {statsModalType === 'audited' && 'Audited Prospects & Intelligence'}
-                    {statsModalType === 'ready_to_contact' && 'Ready to Contact (Verified Emails)'}
+                    {statsModalType === 'ready_to_contact' && 'Contact Candidates (Human Review Required)'}
                     {statsModalType === 'sent_today' && "Today's Dispatched Outreach"}
                     {statsModalType === 'total_dispatched' && 'All Dispatched Pitches & Follow-ups'}
                     {statsModalType === 'replies' && 'Inbound Replies & Client Responses'}
@@ -2848,7 +2848,7 @@ export default function DashboardClient({
                 <p className="text-xs text-[#c8c4bc70] mt-1">
                   {statsModalType === 'prospect_pool' && 'Complete listing of all discovered, queued, and processed businesses in your database.'}
                   {statsModalType === 'audited' && 'Prospects evaluated with 6-dimensional opportunity, SEO, mobile, and conversion audit scores.'}
-                  {statsModalType === 'ready_to_contact' && 'Prospects with verified business emails and completed audits ready for pitch generation or send.'}
+                  {statsModalType === 'ready_to_contact' && 'Prospects with a discovered email and no recorded send or reply. Re-check the source, review the draft, and approve manually before any contact.'}
                   {statsModalType === 'sent_today' && 'Emails transmitted today through your personal Gmail account with human-like delays.'}
                   {statsModalType === 'total_dispatched' && 'Historical log of all initial outreach emails and automated follow-ups sent to date.'}
                   {statsModalType === 'replies' && 'Track and log positive responses from prospects to close high-ticket web design & SEO deals.'}
@@ -2894,7 +2894,7 @@ export default function DashboardClient({
                         return d.getUTCFullYear() === t.getUTCFullYear() && d.getUTCMonth() === t.getUTCMonth() && d.getUTCDate() === t.getUTCDate()
                       }
                       if (statsModalType === 'audited') return lead.last_audited_at !== null || lead.opportunity_score !== null
-                      if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated')
+                      if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated') && !lead.initial_sent_at && !lead.replied_at && lead.status !== 'unsubscribed'
                       if (statsModalType === 'sent_today') return isTodayLead(lead.initial_sent_at) || isTodayLead(lead.followup_sent_at)
                       if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                       if (statsModalType === 'replies') return Boolean(lead.replied_at)
@@ -2968,7 +2968,7 @@ export default function DashboardClient({
                 const filtered = initialLeads
                   .filter((lead) => {
                     if (statsModalType === 'audited') return lead.last_audited_at !== null || lead.opportunity_score !== null
-                    if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated')
+                    if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated') && !lead.initial_sent_at && !lead.replied_at && lead.status !== 'unsubscribed'
                     if (statsModalType === 'sent_today') return isTodayLead(lead.initial_sent_at) || isTodayLead(lead.followup_sent_at)
                     if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                     if (statsModalType === 'replies') return Boolean(lead.replied_at)
@@ -3188,7 +3188,7 @@ export default function DashboardClient({
                 {statsModalType === 'replies'
                   ? `Total Replies Tracked: ${stats.replies_total}`
                   : statsModalType === 'ready_to_contact'
-                  ? `${stats.ready_to_contact} prospects ready for pitch generation or dispatch`
+                  ? `${stats.ready_to_contact} contact candidates requiring source and draft review`
                   : 'Click "Intel Profile" on any row to view complete pitch & audit details'}
               </div>
               <button

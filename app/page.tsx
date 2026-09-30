@@ -113,7 +113,15 @@ export default async function Page() {
           ) as audited_total,
           coalesce(
             sum(
-              case when status = 'scraped' and email is not null then 1 else 0 end
+              case
+                when status in ('scraped', 'generated')
+                  and email is not null
+                  and initial_sent_at is null
+                  and replied_at is null
+                  and status <> 'unsubscribed'
+                then 1
+                else 0
+              end
             ),
             0
           ) as ready_to_contact,
