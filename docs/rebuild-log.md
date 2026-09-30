@@ -155,6 +155,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Updated the scoped validation seed with the 10 documented candidates; the live database reported `inserted: 10` and `totalCandidates: 20`. Ran `scripts/check-validation-cohort.mjs`: `total=20`, `new_leads=10`, `without_email=12`, `non_pending_approvals=0`, `sent=0`, and `audited=10`; the cohort safety check passed.
 - Added persisted `email_verification_status`, `email_verified_at`, and `email_verification_method` fields. The live migration completed successfully; future approval and sender checks use `source_verified` rather than inferring verification from raw fields.
 - Re-ran the cohort verifier after migration: `total=20`, `source_verified=11`, `needs_review=2`, `unverified=7`, `approved_without_verification=0`, `sent=0`, and `audited=17`; safety check passed.
+- Re-checked and expanded the unsent first-contact queue with Dayli, PET FEB, and Sombreiro. Their current public pages support diagnostic, permission-first messages; no message or interaction was sent or recorded.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.

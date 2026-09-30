@@ -53,6 +53,48 @@ These are permission requests, not audits or proposals. After sending, record an
 >
 > Bryan
 
+## 4. Dayli Energy Solutions — order-path test
+
+- Website: https://www.daylienergy.com/
+- Contact found by Coldstart: `support@daylienergy.com` (high confidence, website schema source)
+- Re-check result on 2026-10-01: the public homepage describes a four-step order process and lists a Port Harcourt office, phone/WhatsApp link, and support email. Verify the order-request path on mobile before contact.
+- Suggested channel: email or WhatsApp
+- Do not send if: the order request is already a clear, short, monitored enquiry path after the mobile test.
+
+**Subject:** Quick question about Dayli's order enquiries
+
+> Hi Dayli team, I was looking at the order path on your public website and noticed one small step I wanted to verify on mobile before making assumptions. Would it be useful if I sent a short note showing the exact customer path I saw and one possible improvement?
+>
+> Bryan
+
+## 5. PET FEB International — product/training path test
+
+- Website: https://www.petfeb.com/
+- Contact found by Coldstart: `info@petfeb.com` (high confidence, website source)
+- Re-check result on 2026-10-01: the current site presents products, projects, training, and consultation/enquiry paths, and lists a Port Harcourt address and email. Verify whether a buyer can reach the correct product or installation enquiry without being diverted into training content.
+- Suggested channel: email
+- Do not send if: the relevant product or installation path is already clearly separated and reaches the right team.
+
+**Subject:** Quick question about PET FEB's solar enquiries
+
+> Hi PET FEB team, I was looking at the public site and noticed that product, project, and training enquiries appear alongside one another. I may be missing context, so I do not want to assume that creates friction. Would it be useful if I sent a short note showing the path I saw and one possible improvement?
+>
+> Bryan
+
+## 6. Sombreiro Energy — project-enquiry test
+
+- Website: https://sombreiroenergy.com/
+- Contact found by Coldstart: `info@sombreiroenergy.com` (high confidence, website source)
+- Re-check result on 2026-10-01: the homepage still presents renewable-energy projects for homes, businesses, and industries and exposes a contact/WhatsApp path. Verify whether a new project enquiry gives visitors a clear next step and expected response route.
+- Suggested channel: email or WhatsApp
+- Do not send if: a current mobile test shows a clear project-assessment flow with an obvious monitored handoff.
+
+**Subject:** Quick question about Sombreiro's project enquiries
+
+> Hi Sombreiro team, I was checking the public renewable-energy page and wanted to verify one small detail in the project-enquiry path. Would it be useful if I sent a short note showing what a visitor sees and one possible improvement?
+>
+> Bryan
+
 ## Send-and-record checklist
 
 Before each message:
