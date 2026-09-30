@@ -58,6 +58,6 @@ Bryan
 
 Record the commercial progression as separate interactions:
 
-`conversation` → `walkthrough` → `proposal_sent` → `paid_pilot`
+`conversation` → `audit_walkthrough` → `proposal_sent` → `paid_pilot`
 
 Do not record `proposal_sent` until the proposal was actually sent. Do not record `paid_pilot` until payment is confirmed. Record the agreed repair and any objection in the note field.

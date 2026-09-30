@@ -2279,6 +2279,22 @@ export default function DashboardClient({
               </div>
             )}
 
+            {selectedLead.audit_details?.verifiedFacts?.[0] && (
+              <div className="bg-[#8b3a2a]/10 border border-[#c8a44b]/25 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-mono text-[#c8a44b] uppercase">Conversation brief</div>
+                  <span className="text-[9px] font-mono text-[#c8c4bc55] uppercase">Verify before sharing</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <p className="text-[#c8c4bc]"><span className="text-[#c8c4bc55]">Observed: </span>{selectedLead.audit_details.verifiedFacts[0]}</p>
+                  <p className="text-[#c8c4bc]"><span className="text-[#c8c4bc55]">Business hypothesis: </span>This may make it less direct for an interested visitor to take the next enquiry step. It is a hypothesis to test, not a measured loss.</p>
+                  {selectedLead.audit_details.quickWins?.[0] && (
+                    <p className="text-[#c8c4bc]"><span className="text-[#c8c4bc55]">Possible pilot repair: </span>{selectedLead.audit_details.quickWins[0]}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {selectedLead.audit_details?.topIssues && selectedLead.audit_details.topIssues.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-[11px] font-mono text-[#c8c4bc70] uppercase tracking-wider">Detected Issues</h4>

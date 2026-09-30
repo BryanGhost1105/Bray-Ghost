@@ -68,7 +68,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 
 - [x] Select one niche and geography (provisional: solar installers in Port Harcourt)
 - [x] Define one paid pilot and deliverables (`docs/validation/pilot-offer.md`)
-- [ ] Rewrite audit output in business language
+- [x] Rewrite audit output in business language (conversation brief added to Intel view)
 - [x] Require one checkable fact in every draft
 - [x] Use permission-based first contact
 - [x] Track objections and outcomes
