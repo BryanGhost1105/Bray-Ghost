@@ -6,13 +6,16 @@
 
 These are permission requests, not audits or proposals. After sending, record an `attempted` interaction in Coldstart with the channel and timestamp. Do not mark a conversation until a person replies and discusses the observation.
 
+**Re-check status on 2026-09-30:** Solartricity is **on hold**. Its currently indexed contact address conflicts with the address below, so do not email it until a company-controlled page confirms the recipient.
+
 ## 1. Solartricity — strongest defect-led test
 
 - Website: https://www.solartricity.com.ng/
 - Contact found by Coldstart: `sales@solartricity.com.ng` (medium confidence, verified domain MX)
+- Current verification issue: a current indexed result showed `info@solartricty.com.ng`, a different domain spelling, while the direct page did not return inspectable content in the re-check. Treat the stored address as uncleared.
 - Observation to re-check: homepage has no meta description and no primary `<h1>`; the audit also found no online inquiry form or tap-to-call link.
-- Suggested channel: email
-- Do not send if: the live homepage now contains these elements or the address is not confirmed on the business website.
+- Suggested channel: manual phone or website verification first
+- Do not send until a current company-controlled page confirms the recipient address and the observation is still true.
 
 **Subject:** Quick question about Solartricity’s website
 
@@ -27,6 +30,7 @@ These are permission requests, not audits or proposals. After sending, record an
 - Observation to re-check: the solar page presents several business divisions and routes enquiries through the general contact path; the audit found no online inquiry form or tap-to-call link.
 - Suggested channel: email, then phone only if the public contact details identify the correct person
 - Do not send if: the solar page has been redesigned into a focused enquiry flow.
+- Re-check result on 2026-09-30: the public solar page still identifies solar as one of several divisions, routes enquiries through the contact page, and lists `info@rafrankltd.com` and a Port Harcourt address. Perform the final visual/mobile check immediately before sending.
 
 **Subject:** Quick question about Rafrank’s solar enquiries
 
@@ -41,6 +45,7 @@ These are permission requests, not audits or proposals. After sending, record an
 - Public context: the contact page already offers a form and WhatsApp, so this is not a “bad website” pitch. Re-check whether the mobile handoff preserves the visitor’s enquiry details and whether the phone number is tap-to-call on the homepage.
 - Suggested channel: WhatsApp or email
 - Do not send if: the handoff is clear and a current mobile test finds no specific friction.
+- Re-check result on 2026-09-30: the indexed contact page confirms `info@kharizenergy.com`, a form, and a WhatsApp handoff. Test the handoff before describing any friction; do not describe the site as broken.
 
 **Subject:** Quick question about Khariz’s mobile enquiry path
 

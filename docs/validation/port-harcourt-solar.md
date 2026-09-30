@@ -112,6 +112,12 @@ These notes describe what the public pages show. They are not claims that the bu
 
 These are public observations from the linked pages and search-indexed content. They are qualification notes, not claims of lost revenue. Re-check the exact mobile path before contacting anyone.
 
+### Re-check on 2026-09-30
+
+- **Solartricity:** hold outreach. The indexed result showed `info@solartricty.com.ng`, which conflicts with the previously stored `sales@solartricity.com.ng`; the direct page did not return inspectable content in the re-check.
+- **Rafrank:** still shows solar alongside several business divisions, routes enquiries through the contact page, and lists `info@rafrankltd.com` with a Port Harcourt address. Perform the final visual/mobile check before contact.
+- **Khariz:** the indexed contact page confirms a form, WhatsApp handoff, and `info@kharizenergy.com`. Test the handoff before describing any friction.
+
 | Business | Verified public observation | Validation decision |
 |---|---|---|
 | GoSolar Ng | Homepage presents a system calculator, financing message, sizing simulation, quote/contact CTAs, Port Harcourt address, phone numbers, and a public email. | Keep as a strong operator; test whether calculator completion routes cleanly to a human and whether the financing CTA creates a measurable enquiry handoff. |

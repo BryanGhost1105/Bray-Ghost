@@ -144,6 +144,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Added `scripts/check-permission-drafts.mjs`; live verification passed for all 8 generated validation drafts (`8/8` permission request, `0/8` banned-claim failures).
 - Prepared an unsent first-contact queue for Solartricity, Rafrank Integrated, and Khariz with source URLs, channel choices, re-check conditions, and permission-first copy. No interaction was recorded because no message has been sent.
 - Added the fixed-scope 48-hour enquiry-path repair pilot and proposal template. The initial price test is ₦75,000 split 50/50; it is explicitly experimental and makes no ranking, lead, or revenue promise. No proposal has been sent and no payment has been received.
+- Re-checked the first-contact queue on 2026-09-30. Rafrank remains the strongest cleared candidate pending a final visual/mobile check; Khariz requires a diagnostic mobile handoff check; Solartricity was placed on hold because its currently indexed contact address conflicts with the stored address. No message was sent.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.
