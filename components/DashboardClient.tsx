@@ -45,6 +45,9 @@ export interface Lead {
   email_confidence: string | null
   email_source: string | null
   email_source_url: string | null
+  email_verification_status: string | null
+  email_verified_at: string | null
+  email_verification_method: string | null
   phone: string | null
   audit_details: AuditDetails | null
   generated_subject: string | null
@@ -143,7 +146,7 @@ function getLeadNextAction(lead: Lead): string {
   if (lead.replied_at) return 'Reply received'
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
-  if (lead.email_confidence !== 'HIGH' || !lead.email_source_url) return 'Verify contact source before approval'
+  if (lead.email_verification_status !== 'source_verified') return 'Verify contact source before approval'
   if (!lead.generated_body) return 'Generate pitch for review'
   if (!lead.initial_sent_at && lead.generation_policy_version !== 'permission-v1') return 'Regenerate permission-first draft'
   if (!lead.initial_sent_at && lead.initial_approval_status !== 'approved') return 'Approve pitch for sending'
@@ -2187,6 +2190,12 @@ export default function DashboardClient({
                     <span className="text-white">{selectedLead.email_source || 'unspecified'}</span>
                   </div>
                   <div>
+                    <span className="text-[#c8c4bc40]">Verification: </span>
+                    <span className={selectedLead.email_verification_status === 'source_verified' ? 'text-[#6dc86d]' : 'text-[#e8b85d]'}>
+                      {selectedLead.email_verification_status || 'unverified'}
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-[#c8c4bc40]">Lead Status: </span>
                     <span className="text-white capitalize">{selectedLead.status}</span>
                   </div>
@@ -2200,7 +2209,7 @@ export default function DashboardClient({
                   </div>
                 </div>
               )}
-              {selectedLead.email && (selectedLead.email_confidence !== 'HIGH' || !selectedLead.email_source_url) && (
+              {selectedLead.email && selectedLead.email_verification_status !== 'source_verified' && (
                 <div className="rounded-md border border-[#e8b85d]/25 bg-[#e8b85d]/5 px-3 py-2 text-[11px] text-[#e8b85d]">
                   Do not contact this address yet. Confirm the recipient on the business's current website or public business profile before recording or sending an attempt.
                 </div>

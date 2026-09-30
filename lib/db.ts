@@ -40,6 +40,9 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_source TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_confidence TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_source_url TEXT;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verification_status TEXT NOT NULL DEFAULT 'unverified';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verification_method TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS phone TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_audited_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS replied_at TIMESTAMP WITH TIME ZONE;
@@ -68,6 +71,21 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS generation_policy_version TEXT;
       ALTER TABLE settings ADD COLUMN IF NOT EXISTS replies_count INTEGER DEFAULT 0;
       UPDATE leads SET unsubscribe_token = gen_random_uuid()::text WHERE unsubscribe_token IS NULL;
+      UPDATE leads
+      SET email_verification_status = CASE
+            WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL THEN 'source_verified'
+            WHEN email IS NOT NULL THEN 'needs_review'
+            ELSE 'unverified'
+          END,
+          email_verified_at = CASE
+            WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL THEN COALESCE(email_verified_at, NOW())
+            ELSE NULL
+          END,
+          email_verification_method = CASE
+            WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL THEN COALESCE(email_verification_method, 'source-confidence-check')
+            ELSE NULL
+          END
+      WHERE email_verification_status = 'unverified';
 
       CREATE TABLE IF NOT EXISTS lead_contacts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

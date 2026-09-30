@@ -285,8 +285,7 @@ export async function POST(request: Request) {
              AND generation_policy_version = 'permission-v1'
              AND generated_subject IS NOT NULL
              AND generated_body IS NOT NULL
-             AND email_confidence = 'HIGH'
-             AND email_source_url IS NOT NULL
+             AND email_verification_status = 'source_verified'
              AND initial_sent_at IS NULL
              AND replied_at IS NULL
              AND status <> 'unsubscribed'
@@ -594,7 +593,11 @@ export async function POST(request: Request) {
           const found = await findEmailViaSearch(enrichLead.business_name, enrichLead.city || '', domain)
           if (found && !(await isSuppressedEmail(found.email))) {
             await pool.query(
-              `UPDATE leads SET email = $1, email_source = $2, email_confidence = $3, email_source_url = $4, status = 'scraped' WHERE id = $5`,
+              `UPDATE leads SET email = $1, email_source = $2, email_confidence = $3, email_source_url = $4,
+               email_verification_status = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL THEN 'source_verified' ELSE 'needs_review' END,
+               email_verified_at = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL THEN NOW() ELSE NULL END,
+               email_verification_method = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL THEN 'search-source-check' ELSE NULL END,
+               status = 'scraped' WHERE id = $5`,
               [found.email, found.source, found.confidence, found.sourceUrl || null, leadId]
             )
             steps.push(`Found email: ${found.email} (${found.confidence})`)

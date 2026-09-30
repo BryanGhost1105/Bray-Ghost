@@ -367,10 +367,14 @@ export async function sourceNoWebsiteEmails(
            email = $1,
            email_source = $2,
            email_confidence = $3,
-           scraped_content = COALESCE(scraped_content, $4),
+           email_source_url = $4,
+           email_verification_status = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL THEN 'source_verified' ELSE 'needs_review' END,
+           email_verified_at = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL THEN NOW() ELSE NULL END,
+           email_verification_method = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL THEN 'search-fallback-source-check' ELSE NULL END,
+           scraped_content = COALESCE(scraped_content, $5),
            status = 'scraped'
-         WHERE id = $5`,
-        [foundEmail.email, foundEmail.source, foundEmail.confidence, fallbackContent, lead.id]
+         WHERE id = $6`,
+        [foundEmail.email, foundEmail.source, foundEmail.confidence, foundEmail.sourceUrl || null, fallbackContent, lead.id]
       )
       sourced++
     } else {
