@@ -150,6 +150,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Removed the unsafe implicit `HIGH` confidence display for contacts with missing confidence data. The Intel profile now shows `UNKNOWN` and warns when the address lacks explicit high confidence or a linked source URL.
 - Added and ran `scripts/check-repository-hygiene.mjs`:  tracked filenames and `HEAD` contents were scanned for environment files, private keys, database URLs with passwords, and common API-token patterns; the check passed.
 - Expanded the documented Port Harcourt solar research pool from 10 to 20 public-source candidates. The additional 10 are research-only until website, decision-maker, contact route, and observation checks are completed; no guessed addresses were added and no outreach was sent.
+- Updated the scoped validation seed with the 10 documented candidates; the live database reported `inserted: 10` and `totalCandidates: 20`. Ran `scripts/check-validation-cohort.mjs`: `total=20`, `new_leads=10`, `without_email=12`, `non_pending_approvals=0`, `sent=0`, and `audited=10`; the cohort safety check passed.
 - Audit result: opportunity scores ranged from 5 to 34. Solartricity is the clearest defect-led test; Solar World Electric is a benchmark/partnership target rather than a generic website-audit prospect.
 - No provider was contacted and no message was approved or sent.
 - Replaced the old US/Dallas/roofing starter presets with Nigeria-oriented UI suggestions. Custom niche/city pairs remain supported; this does not force a market.

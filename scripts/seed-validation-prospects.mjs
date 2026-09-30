@@ -17,6 +17,16 @@ const prospects = [
   { business: 'TECIL Solar', website: 'https://www.tecilsolar.com/' },
   { business: 'Rafrank Integrated Limited', website: 'https://rafrankltd.com/solar.php' },
   { business: 'Goshenvilla Limited', website: 'https://goshenvilla.com/' },
+  { business: 'HakunaSolar', website: 'https://hakunasolar.com/' },
+  { business: 'SolarBolts', website: 'https://solarbolts.com/' },
+  { business: 'DB Energy', website: 'https://www.dbenergy.ng/locations/port-harcourt' },
+  { business: 'Marrot Energy', website: 'https://marrotenergy.com/' },
+  { business: 'PET FEB International', website: 'https://petfeb.com/' },
+  { business: 'SprintQuest Energy Services', website: null },
+  { business: 'Unitronix Global', website: null },
+  { business: 'ECAFGOLDEN SOLAR', website: 'https://www.ecafgoldensolar.com.ng/' },
+  { business: 'EnergyCare', website: null },
+  { business: 'Solution Energy and Engineering Services', website: 'https://www.solutionenergylimited.com/' },
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
