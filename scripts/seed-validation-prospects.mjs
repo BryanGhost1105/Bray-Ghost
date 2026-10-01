@@ -33,7 +33,7 @@ const prospects = [
   { business: 'Reverse Energy', website: 'https://reverseenergy.ng/' },
   { business: 'Nyesco Energy Service', website: 'https://www.nyescoenergy.com/' },
   { business: 'Enerplaz PayGo', website: 'https://enerplazpaygo.com/' },
-  { business: 'Tovero Energy', website: 'http://www.toveroenergy.com/' },
+  { business: 'Tovero Energy', website: 'https://www.toveroenergy.com/' },
   { business: 'A.O. Demarg', website: 'https://aodemarg.com/' },
 ]
 

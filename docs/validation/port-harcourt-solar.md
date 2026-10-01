@@ -62,7 +62,7 @@ These additional entries are research candidates. Their public sources support m
 | 26 | Reverse Energy | [reverseenergy.ng](https://reverseenergy.ng/) | Port Harcourt renewable-energy provider with product and consultation paths; test whether product CTAs capture useful project context | Website / WhatsApp |
 | 27 | Nyesco Energy Service | [company profile](https://www.nyescoenergy.com/wp-content/uploads/2019/07/profile.pdf) | Public profile places an inverter and solar service at Trans-Amadi; verify current website, offer, and enquiry route | Phone / website |
 | 28 | Enerplaz PayGo | [company profile](https://ng.linkedin.com/company/enerplaz-paygo) · [enerplazpaygo.com](https://enerplazpaygo.com/) | Port Harcourt solar/pay-as-you-go operator; test whether financing and installation enquiries are clearly separated | Website / LinkedIn |
-| 29 | Tovero Energy | [company profile](https://www.linkedin.com/company/tovero-energy/?originalSubdomain=ng) · [toveroenergy.com](http://www.toveroenergy.com/) | Port Harcourt renewable-energy company; verify current site availability and whether a buyer can start a project enquiry | Website / LinkedIn |
+| 29 | Tovero Energy | [company profile](https://www.linkedin.com/company/tovero-energy/?originalSubdomain=ng) · [toveroenergy.com](https://www.toveroenergy.com/) | Port Harcourt renewable-energy company; verify current site availability and whether a buyer can start a project enquiry | Website / LinkedIn |
 | 30 | A.O. Demarg | [contact page](https://aodemarg.com/contact-us/) | Public contact page lists a Port Harcourt office and solar-related business presence; test whether the site gives a direct quote path | Website / phone |
 
 ## Research checklist for every prospect
@@ -115,6 +115,9 @@ If 10 well-targeted conversations produce no serious interest, change the offer 
 
 ## Current status
 
+- Current cohort: 30 distinct businesses in Coldstart (33 rows, including three duplicate rows from the original null-website seed; the seed is now idempotent).
+- Current live checks: 27 records have an audit timestamp, 23 contacts are source-linked, 2 are marked `needs_review`, and 8 remain unverified; two website retries are waiting. Approval/send safety checks pass with zero approvals and zero sends.
+- New-candidate audit: 9 of 10 businesses added in the latest batch completed the website audit; Nyesco is still retrying after site fetch failures.
 - Initial public prospect set: 10 candidates
 - Public pages checked: 10; detailed Coldstart audits completed: 8; 2 crawler fetches failed and remain manual-review items
 - Coldstart pipeline run: 8/10 have a generated audit state; 8/10 have a contact address; all 10 remain `initial_approval_status=pending`

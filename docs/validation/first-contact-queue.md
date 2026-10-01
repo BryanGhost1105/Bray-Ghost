@@ -8,6 +8,14 @@ These are permission requests, not audits or proposals. After sending, record an
 
 **Re-check status on 2026-09-30:** Solartricity is **on hold**. Its currently indexed contact address conflicts with the address below, so do not email it until a company-controlled page confirms the recipient.
 
+## Current order to verify before a first contact
+
+1. **Rafrank Integrated** — its current solar page identifies the Port Harcourt office, phone, email, and solar offer. Ask permission to share the specific general-contact handoff observation; the page was rechecked on 2026-10-01.
+2. **Felson Solar Solutions** — Coldstart audit opportunity score 25; its current site lists an email and two phone numbers. Verify the tap-to-call detail on a phone before using the observation below.
+3. **Tovero Energy** — Coldstart audit opportunity score 20 after correcting its stored URL to HTTPS and re-auditing. Its current site lists several service lines and public contact details; use a neutral routing question, not a claim that the site is broken.
+
+All three remain **prepared, not sent**. The scores rank audit observations, not likelihood to buy. Their source-listed addresses have not had mailbox delivery tested.
+
 ## 1. Solartricity — strongest defect-led test
 
 - Website: https://www.solartricity.com.ng/
@@ -92,6 +100,34 @@ These are permission requests, not audits or proposals. After sending, record an
 **Subject:** Quick question about Sombreiro's project enquiries
 
 > Hi Sombreiro team, I was checking the public renewable-energy page and wanted to verify one small detail in the project-enquiry path. Would it be useful if I sent a short note showing what a visitor sees and one possible improvement?
+>
+> Bryan
+
+## 7. Felson Solar Solutions — mobile call handoff check
+
+- Website: https://www.felsonsolar.com/
+- Contact found by Coldstart: `info@felsonsolar.com` (high confidence; source matched on the public site)
+- Current source: the site describes residential and commercial systems, a consultation/design-and-quote process, and lists two phone numbers with the public email. The latest Coldstart audit scored the opportunity 25 and found the displayed phone number lacked a `tel:` link in the captured homepage.
+- Suggested channel: phone or email after manually confirming the current mobile rendering.
+- Do not claim the site has no quote path: its public copy describes a design-and-quote process.
+
+**Subject:** Quick mobile question for Felson
+
+> Hi Felson team, I was reviewing the contact section on your public site and saw the numbers listed alongside your consultation and quote process. In the page version I inspected, I could not confirm that a number opens directly from a tap. I may have missed it. Would it be useful if I sent a short note showing the exact mobile step?
+>
+> Bryan
+
+## 8. Tovero Energy — service-enquiry routing check
+
+- Website: https://www.toveroenergy.com/
+- Contact found by Coldstart: `info@toveroenergy.com` (high confidence; confirmed on the official page)
+- Current source: the official site lists energy planning/audit, mini-grid design, advisory, clean cooking, systems design, advocacy, and other services, with public phone and email details. The corrected HTTPS audit scored the opportunity 20 and found no `tel:` link or online enquiry form in the captured page.
+- Suggested channel: phone or email after manually checking whether each service routes to the right contact.
+- Do not describe the site as insecure; the previous HTTP source URL was incorrect and is fixed.
+
+**Subject:** Quick question about Tovero's service enquiries
+
+> Hi Tovero team, I was looking at the services on your public website and wanted to understand how someone with a specific energy-planning or mini-grid enquiry reaches the right person. Would it be useful if I sent a short note about the contact path I saw?
 >
 > Bryan
 
