@@ -55,7 +55,8 @@ async function remainingCapacity(): Promise<{ initial: number; followups: number
 async function hasActionableWork(cap: { initial: number; followups: number }): Promise<boolean> {
   const pending = await pool.query(
     `SELECT
-      (SELECT COUNT(*) FROM leads WHERE status = 'new') AS to_scrape,
+      (SELECT COUNT(*) FROM leads WHERE status = 'new'
+        AND (audit_next_attempt_at IS NULL OR audit_next_attempt_at <= NOW())) AS to_scrape,
       (SELECT COUNT(*) FROM leads WHERE status = 'scraped' AND email IS NOT NULL) AS to_generate,
       (SELECT COUNT(*) FROM leads WHERE status IN ('no_website', 'email_needed') AND email IS NULL
         AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())) AS to_source,
@@ -139,16 +140,24 @@ export async function GET(request: Request) {
     if (!exhausted(startedAt)) {
       try {
         const leads = await pool.query(
-          `SELECT id FROM leads WHERE status = 'new' ORDER BY seo_score ASC NULLS LAST, created_at ASC LIMIT $1`,
+          `SELECT id FROM leads WHERE status = 'new'
+           AND (audit_next_attempt_at IS NULL OR audit_next_attempt_at <= NOW())
+           ORDER BY seo_score ASC NULLS LAST, created_at ASC LIMIT $1`,
           [MAX_SCRAPES_PER_RUN]
         )
         let processed = 0
+        let failed = 0
         for (const lead of leads.rows) {
           if (exhausted(startedAt)) break
-          await scrapeWebsite(lead.id)
-          processed++
+          if (await scrapeWebsite(lead.id)) processed++
+          else failed++
         }
-        results.scraping = { success: true, processed }
+        results.scraping = {
+          success: failed === 0,
+          processed,
+          count: processed,
+          ...(failed > 0 ? { error: `${failed} website audit(s) failed and were queued for retry or email sourcing.` } : {}),
+        }
       } catch (error) {
         results.scraping = { success: false, error: error instanceof Error ? error.message : String(error) }
       }

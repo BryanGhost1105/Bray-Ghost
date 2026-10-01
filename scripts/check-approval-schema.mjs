@@ -1,6 +1,4 @@
-import pg from 'pg'
-
-const { Pool } = pg
+import { Pool } from '@neondatabase/serverless'
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required.')
@@ -16,6 +14,11 @@ const expected = [
   'followup_approved_by',
   'followup_uncertain_at',
   'generation_policy_version',
+  'email_verification_status',
+  'email_verified_at',
+  'email_verification_method',
+  'audit_attempts',
+  'audit_next_attempt_at',
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })

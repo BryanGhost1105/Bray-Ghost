@@ -1,16 +1,15 @@
-import pg from 'pg'
-
-const { Pool } = pg
+import { Pool } from '@neondatabase/serverless'
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required.')
 }
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const client = await pool.connect()
 
 try {
-  await pool.query('BEGIN')
-  await pool.query(`
+  await client.query('BEGIN')
+  await client.query(`
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_approval_status TEXT NOT NULL DEFAULT 'pending';
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_approved_at TIMESTAMP WITH TIME ZONE;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_approved_by TEXT;
@@ -23,6 +22,8 @@ try {
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verification_status TEXT NOT NULL DEFAULT 'unverified';
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE;
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verification_method TEXT;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS audit_attempts INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS audit_next_attempt_at TIMESTAMP WITH TIME ZONE;
     UPDATE leads
     SET email_verification_status = CASE
           WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL AND email_source IS DISTINCT FROM 'ai_extracted' THEN 'source_verified'
@@ -52,11 +53,12 @@ try {
     CREATE INDEX IF NOT EXISTS idx_lead_interactions_lead_id
       ON lead_interactions(lead_id, occurred_at DESC);
   `)
-  await pool.query('COMMIT')
+  await client.query('COMMIT')
   console.log('Approval schema migration committed.')
 } catch (error) {
-  await pool.query('ROLLBACK').catch(() => undefined)
+  await client.query('ROLLBACK').catch(() => undefined)
   throw error
 } finally {
+  client.release()
   await pool.end()
 }

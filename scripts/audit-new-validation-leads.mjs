@@ -1,7 +1,5 @@
 import fs from 'node:fs'
-import pg from 'pg'
-
-const { Pool } = pg
+import { Pool } from '@neondatabase/serverless'
 const env = Object.fromEntries(
   fs.readFileSync('.env.local', 'utf8')
     .split(/\r?\n/)
@@ -24,8 +22,10 @@ try {
     JOIN niches n ON n.id = l.niche_id
     WHERE lower(n.label) = lower('Solar Installer')
       AND lower(n.city) = lower('Port Harcourt, Nigeria')
-      AND l.status = 'new'
-      AND l.last_audited_at IS NULL
+      AND (
+        (l.status = 'new' AND l.last_audited_at IS NULL)
+        OR l.scraped_content LIKE '%(Audit attempt failed:%'
+      )
     ORDER BY l.created_at ASC
   `)
 
@@ -44,16 +44,19 @@ try {
     results.push({
       business: lead.business_name,
       status: response.status,
-      success: body.success,
+      success: response.ok && body.success === true && body.scrapedOk === true,
       scrapedOk: body.scrapedOk,
       generatedOk: body.generatedOk,
       leadStatus: body.lead?.status,
       auditedAt: body.lead?.last_audited_at,
+      auditError: body.lead?.scraped_content?.match(/\(Audit attempt failed: ([^)]+)\)/)?.[1],
       message: body.message || body.error,
     })
   }
 
-  console.log(JSON.stringify({ audited: results.length, results }, null, 2))
+  const failed = results.filter((item) => !item.success).length
+  console.log(JSON.stringify({ audited: results.length, failed, results }, null, 2))
+  if (failed > 0) process.exitCode = 1
 } finally {
   await pool.end()
 }

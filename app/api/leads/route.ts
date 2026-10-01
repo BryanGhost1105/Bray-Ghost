@@ -594,9 +594,9 @@ export async function POST(request: Request) {
           if (found && !(await isSuppressedEmail(found.email))) {
             await pool.query(
               `UPDATE leads SET email = $1, email_source = $2, email_confidence = $3, email_source_url = $4,
-               email_verification_status = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL AND $2 IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
-               email_verified_at = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL AND $2 IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
-               email_verification_method = CASE WHEN $3 = 'HIGH' AND $4 IS NOT NULL AND $2 IS DISTINCT FROM 'ai_extracted' THEN 'search-source-check' ELSE NULL END,
+               email_verification_status = CASE WHEN $3::text = 'HIGH' AND $4::text IS NOT NULL AND $2::text IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
+               email_verified_at = CASE WHEN $3::text = 'HIGH' AND $4::text IS NOT NULL AND $2::text IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
+               email_verification_method = CASE WHEN $3::text = 'HIGH' AND $4::text IS NOT NULL AND $2::text IS DISTINCT FROM 'ai_extracted' THEN 'search-source-check' ELSE NULL END,
                status = 'scraped' WHERE id = $5`,
               [found.email, found.source, found.confidence, found.sourceUrl || null, leadId]
             )

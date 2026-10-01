@@ -356,9 +356,9 @@ ${homeBodyText || 'Minimal text extracted.'}`
          email_source = $3,
          email_confidence = $4,
          email_source_url = $5,
-         email_verification_status = CASE WHEN $4 = 'HIGH' AND $5 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
-         email_verified_at = CASE WHEN $4 = 'HIGH' AND $5 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
-         email_verification_method = CASE WHEN $4 = 'HIGH' AND $5 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN 'website-source-check' ELSE NULL END,
+         email_verification_status = CASE WHEN $4::text = 'HIGH' AND $5::text IS NOT NULL AND $3::text IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
+         email_verified_at = CASE WHEN $4::text = 'HIGH' AND $5::text IS NOT NULL AND $3::text IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
+         email_verification_method = CASE WHEN $4::text = 'HIGH' AND $5::text IS NOT NULL AND $3::text IS DISTINCT FROM 'ai_extracted' THEN 'website-source-check' ELSE NULL END,
          phone = COALESCE($6, phone),
          status = $7,
          seo_score = $8,
@@ -371,7 +371,9 @@ ${homeBodyText || 'Minimal text extracted.'}`
          outreach_angle = $15,
          outreach_reason = $16,
          audit_details = $17,
-         last_audited_at = NOW()
+         last_audited_at = NOW(),
+         audit_attempts = 0,
+         audit_next_attempt_at = NULL
        WHERE id = $18`,
       [
         scrapedContent,
@@ -395,7 +397,7 @@ ${homeBodyText || 'Minimal text extracted.'}`
       ]
     )
 
-    return Boolean(emailToUse)
+    return true
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error(`Scrape/audit error for lead ${leadId} (${siteUrl}):`, message)
@@ -405,8 +407,16 @@ ${homeBodyText || 'Minimal text extracted.'}`
     await pool.query(
       `UPDATE leads SET
          scraped_content = COALESCE(scraped_content, $1),
-         status = 'email_needed',
-         last_audited_at = NOW()
+         status = CASE
+           WHEN status IN ('new', 'email_needed') AND COALESCE(audit_attempts, 0) + 1 >= 3 THEN 'email_needed'
+           WHEN status IN ('new', 'email_needed') THEN 'new'
+           ELSE status
+         END,
+         audit_attempts = COALESCE(audit_attempts, 0) + 1,
+         audit_next_attempt_at = CASE
+           WHEN COALESCE(audit_attempts, 0) + 1 >= 3 THEN NULL
+           ELSE NOW() + (INTERVAL '1 day' * POWER(2, COALESCE(audit_attempts, 0)))
+         END
        WHERE id = $2`,
       [fallbackContent, leadId]
     )

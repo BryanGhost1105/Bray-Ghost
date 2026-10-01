@@ -45,6 +45,8 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verification_method TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS phone TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_audited_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS audit_attempts INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS audit_next_attempt_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS replied_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS initial_provider_id TEXT;
       ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_provider_id TEXT;

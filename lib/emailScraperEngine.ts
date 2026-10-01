@@ -576,9 +576,9 @@ export async function enrichLeadEmail(leadId: string): Promise<EnrichmentResult>
        email_confidence = $2,
        email_source = $3,
        email_source_url = $4,
-       email_verification_status = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
-       email_verified_at = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
-       email_verification_method = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN 'enrichment-source-check' ELSE NULL END,
+       email_verification_status = CASE WHEN $2::text = 'HIGH' AND $4::text IS NOT NULL AND $3::text IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
+       email_verified_at = CASE WHEN $2::text = 'HIGH' AND $4::text IS NOT NULL AND $3::text IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
+       email_verification_method = CASE WHEN $2::text = 'HIGH' AND $4::text IS NOT NULL AND $3::text IS DISTINCT FROM 'ai_extracted' THEN 'enrichment-source-check' ELSE NULL END,
        status = $5,
        email_last_attempt_at = NOW(),
        email_attempts = COALESCE(email_attempts, 0) + 1,
@@ -619,7 +619,7 @@ export async function enrichAllPendingLeads(limit = 50): Promise<{
   const result = await pool.query(
     `SELECT id FROM leads
      WHERE email IS NULL
-       AND status IN ('new', 'email_needed', 'no_website')
+       AND status IN ('email_needed', 'no_website')
        AND COALESCE(email_attempts, 0) < 3
        AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
      ORDER BY opportunity_score DESC NULLS LAST, created_at DESC

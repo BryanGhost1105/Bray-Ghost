@@ -1,6 +1,4 @@
-import pg from 'pg'
-
-const { Pool } = pg
+import { Pool } from '@neondatabase/serverless'
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required.')
@@ -40,10 +38,11 @@ const prospects = [
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const client = await pool.connect()
 
 try {
-  await pool.query('BEGIN')
-  const niche = await pool.query(
+  await client.query('BEGIN')
+  const niche = await client.query(
     `INSERT INTO niches (label, city, status, source, reasoning)
      SELECT 'Solar Installer', 'Port Harcourt, Nigeria', 'active', 'validation', 'First commercial validation cohort for the Coldstart rebuild.'
      WHERE NOT EXISTS (
@@ -54,7 +53,7 @@ try {
 
   let nicheId = niche.rows[0]?.id
   if (!nicheId) {
-    const existing = await pool.query(
+    const existing = await client.query(
       `SELECT id FROM niches WHERE lower(label) = lower('Solar Installer') AND lower(city) = lower('Port Harcourt, Nigeria') LIMIT 1`
     )
     nicheId = existing.rows[0]?.id
@@ -64,7 +63,7 @@ try {
 
   let inserted = 0
   for (const prospect of prospects) {
-    const result = await pool.query(
+    const result = await client.query(
       `INSERT INTO leads (niche_id, business_name, address, website, status, initial_approval_status, followup_approval_status)
        SELECT $1, $2, $3, $4, 'new', 'pending', 'pending'
        WHERE NOT EXISTS (
@@ -76,11 +75,12 @@ try {
     if (result.rows[0]) inserted++
   }
 
-  await pool.query('COMMIT')
+  await client.query('COMMIT')
   console.log(JSON.stringify({ nicheId, inserted, totalCandidates: prospects.length }))
 } catch (error) {
-  await pool.query('ROLLBACK').catch(() => undefined)
+  await client.query('ROLLBACK').catch(() => undefined)
   throw error
 } finally {
+  client.release()
   await pool.end()
 }

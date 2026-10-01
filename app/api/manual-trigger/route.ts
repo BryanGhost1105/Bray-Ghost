@@ -112,23 +112,26 @@ export async function POST(request: Request) {
 
       // 1. Scrape & Audit 'new' leads (6-dimensional website audit + email extraction)
       const newLeads = await pool.query(
-        'SELECT id, business_name, website FROM leads WHERE status = $1 ORDER BY seo_score ASC NULLS LAST LIMIT $2',
+        `SELECT id, business_name, website FROM leads WHERE status = $1
+         AND (audit_next_attempt_at IS NULL OR audit_next_attempt_at <= NOW())
+         ORDER BY seo_score ASC NULLS LAST LIMIT $2`,
         ['new', MAX_SCRAPES_PER_RUN]
       )
 
-      let scrapedCount = 0
-      let auditedCount = 0
+      let successfulAudits = 0
+      let failedAudits = 0
       for (const lead of newLeads.rows) {
         try {
           const ok = await scrapeWebsite(lead.id)
-          auditedCount++
-          if (ok) scrapedCount++
+          if (ok) successfulAudits++
+          else failedAudits++
         } catch (err: unknown) {
+          failedAudits++
           const msg = err instanceof Error ? err.message : String(err)
           logs.push(`Audit error on ${lead.business_name}: ${msg}`)
         }
       }
-      logs.push(`Website Audits: ${auditedCount} sites analyzed, ${scrapedCount} emails discovered.`)
+      logs.push(`Website audits: ${successfulAudits} completed, ${failedAudits} failed.`)
 
       // 2. Email sourcing for no-website / email-needed leads
       try {

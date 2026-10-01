@@ -1,5 +1,4 @@
-import pg from 'pg';
-const { Pool } = pg;
+import { Pool } from '@neondatabase/serverless';
 
 const connectionString = process.env.DATABASE_URL;
 

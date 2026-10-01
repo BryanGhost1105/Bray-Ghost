@@ -1,7 +1,7 @@
 # Commercial Validation: Port Harcourt Solar Installers
 
 **Created:** 2026-09-26  
-**Status:** hypothesis selected, 30 public-source candidates defined for Coldstart; latest audit state is pending confirmation after a live database timeout; permission-based outreach not started
+**Status:** 30 distinct public-source candidates are in Coldstart; 9 of the 10 newly added operators passed the application website audit, Nyesco needs source/network follow-up; permission-based outreach not started
 **Owner:** Jephtah
 
 ## Hypothesis
