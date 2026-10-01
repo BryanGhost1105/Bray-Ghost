@@ -60,7 +60,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - [x] Reject low-confidence contacts from approval by default
 - [x] Preserve source URLs for every audit observation
 - [x] Validate redirect destinations during crawling
-- [ ] Protect AI prompts from untrusted website instructions
+- [x] Protect AI prompts from untrusted website instructions
 - [ ] Add Gmail reply and out-of-office detection
 - [ ] Stop follow-ups immediately after replies, bounces, or opt-outs
 
@@ -187,3 +187,4 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Strengthened the redirect fix against DNS rebinding: every request resolves its destination once, rejects any non-public answer (including private, loopback, link-local, metadata, documentation, and transition ranges), and pins the socket to one of those checked addresses while retaining the requested hostname for HTTP/TLS. Safe crawler transport is GET/HEAD-only. TypeScript/lint and offline IP/URL guard smoke checks passed; full external crawl and live cohort checks remain unverified because outbound Neon/network access is unavailable in this environment.
 - Production verification after DNS-pinning change: `npm run build` passed on Next.js 16.3.0, including compilation, TypeScript, and page generation. External live-crawl execution is still unverified from this sandbox.
 - Extended saved website audits with per-fact source URL and observation time metadata, and exposed a source link beside every fact in the Intel panel. Legacy audit records remain readable and simply omit unavailable source metadata. Local audit smoke test verified every emitted fact retains the audited page URL and shared observation timestamp; TypeScript and lint passed with 0 errors and 8 pre-existing warnings.
+- Hardened AI use across outreach generation, obfuscated-email extraction, follow-up generation, and niche expansion: external values are serialized as untrusted JSON in user messages, system instructions explicitly forbid following embedded commands, initial/follow-up outputs reject prompt-override language and control characters, and unsafe fallback observations are omitted. Niche suggestions are length-limited, filtered, and capped at five. Prompt-boundary smoke test, TypeScript, lint (0 errors; same 8 warnings), and `npm run build` passed. No external message was sent and no lead state was changed.
