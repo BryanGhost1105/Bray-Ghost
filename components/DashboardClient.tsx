@@ -2192,7 +2192,11 @@ export default function DashboardClient({
                   <div>
                     <span className="text-[#c8c4bc40]">Verification: </span>
                     <span className={selectedLead.email_verification_status === 'source_verified' ? 'text-[#6dc86d]' : 'text-[#e8b85d]'}>
-                      {selectedLead.email_verification_status || 'unverified'}
+                      {selectedLead.email_verification_status === 'source_verified'
+                        ? 'Published on linked source (delivery not checked)'
+                        : selectedLead.email_verification_status === 'needs_review'
+                          ? 'Needs source review'
+                          : 'No source verification'}
                     </span>
                   </div>
                   <div>
@@ -2211,7 +2215,7 @@ export default function DashboardClient({
               )}
               {selectedLead.email && selectedLead.email_verification_status !== 'source_verified' && (
                 <div className="rounded-md border border-[#e8b85d]/25 bg-[#e8b85d]/5 px-3 py-2 text-[11px] text-[#e8b85d]">
-                  Do not contact this address yet. Confirm the recipient on the business's current website or public business profile before recording or sending an attempt.
+                  Do not contact this address yet. Confirm the recipient on the business&apos;s current website or public business profile before recording or sending an attempt.
                 </div>
               )}
             </div>
@@ -2948,7 +2952,7 @@ export default function DashboardClient({
                         return d.getUTCFullYear() === t.getUTCFullYear() && d.getUTCMonth() === t.getUTCMonth() && d.getUTCDate() === t.getUTCDate()
                       }
                       if (statsModalType === 'audited') return lead.last_audited_at !== null || lead.opportunity_score !== null
-                      if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated') && !lead.initial_sent_at && !lead.replied_at && lead.status !== 'unsubscribed'
+                      if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated') && !lead.initial_sent_at && !lead.replied_at
                       if (statsModalType === 'sent_today') return isTodayLead(lead.initial_sent_at) || isTodayLead(lead.followup_sent_at)
                       if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                       if (statsModalType === 'replies') return Boolean(lead.replied_at)
@@ -3022,7 +3026,7 @@ export default function DashboardClient({
                 const filtered = initialLeads
                   .filter((lead) => {
                     if (statsModalType === 'audited') return lead.last_audited_at !== null || lead.opportunity_score !== null
-                    if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated') && !lead.initial_sent_at && !lead.replied_at && lead.status !== 'unsubscribed'
+                    if (statsModalType === 'ready_to_contact') return Boolean(lead.email) && (lead.status === 'scraped' || lead.status === 'generated') && !lead.initial_sent_at && !lead.replied_at
                     if (statsModalType === 'sent_today') return isTodayLead(lead.initial_sent_at) || isTodayLead(lead.followup_sent_at)
                     if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                     if (statsModalType === 'replies') return Boolean(lead.replied_at)

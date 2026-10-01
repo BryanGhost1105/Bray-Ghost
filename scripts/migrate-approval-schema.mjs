@@ -25,19 +25,20 @@ try {
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_verification_method TEXT;
     UPDATE leads
     SET email_verification_status = CASE
-          WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL THEN 'source_verified'
+          WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL AND email_source IS DISTINCT FROM 'ai_extracted' THEN 'source_verified'
           WHEN email IS NOT NULL THEN 'needs_review'
           ELSE 'unverified'
         END,
         email_verified_at = CASE
-          WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL THEN COALESCE(email_verified_at, NOW())
+          WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL AND email_source IS DISTINCT FROM 'ai_extracted' THEN COALESCE(email_verified_at, NOW())
           ELSE NULL
         END,
         email_verification_method = CASE
-          WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL THEN COALESCE(email_verification_method, 'source-confidence-check')
+          WHEN email IS NOT NULL AND email_confidence = 'HIGH' AND email_source_url IS NOT NULL AND email_source IS DISTINCT FROM 'ai_extracted' THEN COALESCE(email_verification_method, 'source-confidence-check')
           ELSE NULL
         END
-    WHERE email_verification_status = 'unverified';
+    WHERE email_verification_status = 'unverified'
+       OR (email_verification_status = 'source_verified' AND email_source = 'ai_extracted');
     CREATE TABLE IF NOT EXISTS lead_interactions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,

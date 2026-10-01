@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       totalProcessed: result.totalProcessed,
       enrichedCount: result.enrichedCount,
       results: result.results,
-      message: `Enriched ${result.enrichedCount} of ${result.totalProcessed} pending leads with verified emails.`,
+      message: `Found source-linked contact candidates for ${result.enrichedCount} of ${result.totalProcessed} pending leads. Mailbox delivery was not checked.`,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)

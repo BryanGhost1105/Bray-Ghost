@@ -382,15 +382,14 @@ ${pageContent.slice(0, 3000)}`
       const emailType: EmailType = ['owner', 'sales', 'support', 'general', 'management', 'other'].includes(parsed.type || '')
         ? (parsed.type as EmailType)
         : 'general'
-      const confidence: EmailConfidence = ['HIGH', 'MEDIUM', 'LOW'].includes(parsed.confidence || '')
-        ? (parsed.confidence as EmailConfidence)
-        : 'HIGH'
+      // The model can suggest an address, but cannot establish that it was
+      // published by the business. Keep this candidate review-only until a
+      // deterministic source check finds it in a page or search result.
       return {
         email: parsed.email.toLowerCase().trim(),
         type: emailType,
-        confidence,
+        confidence: 'MEDIUM',
         source: 'ai_extracted',
-        sourceUrl: domain ? `https://${domain}` : undefined,
       }
     }
   } catch {
@@ -577,9 +576,9 @@ export async function enrichLeadEmail(leadId: string): Promise<EnrichmentResult>
        email_confidence = $2,
        email_source = $3,
        email_source_url = $4,
-       email_verification_status = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL THEN 'source_verified' ELSE 'needs_review' END,
-       email_verified_at = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL THEN NOW() ELSE NULL END,
-       email_verification_method = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL THEN 'enrichment-source-check' ELSE NULL END,
+       email_verification_status = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN 'source_verified' ELSE 'needs_review' END,
+       email_verified_at = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN NOW() ELSE NULL END,
+       email_verification_method = CASE WHEN $2 = 'HIGH' AND $4 IS NOT NULL AND $3 IS DISTINCT FROM 'ai_extracted' THEN 'enrichment-source-check' ELSE NULL END,
        status = $5,
        email_last_attempt_at = NOW(),
        email_attempts = COALESCE(email_attempts, 0) + 1,
@@ -605,7 +604,7 @@ export async function enrichLeadEmail(leadId: string): Promise<EnrichmentResult>
     status: nextStatus,
     details: finalEmail
       ? `Discovered email ${finalEmail} (${finalConfidence} confidence, source: ${finalSource})`
-      : 'No verified email found yet across web, search, or domain MX.',
+      : 'No source-published email address was found. Mailbox delivery is not checked by this step.',
   }
 }
 
