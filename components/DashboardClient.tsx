@@ -67,6 +67,8 @@ export interface Lead {
   followup_opened_at: string | null
   replied_at: string | null
   last_audited_at: string | null
+  audit_attempts: number
+  audit_next_attempt_at: string | null
   created_at: string
 }
 
@@ -144,6 +146,7 @@ function getLeadNextAction(lead: Lead): string {
   if (lead.status === 'unsubscribed') return 'Do not contact'
   if (lead.status === 'send_uncertain') return 'Check mailbox before any retry'
   if (lead.replied_at) return 'Reply received'
+  if (lead.audit_next_attempt_at) return 'Website audit retry scheduled'
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
   if (lead.email_verification_status !== 'source_verified') return 'Verify contact source before approval'
@@ -2219,6 +2222,28 @@ export default function DashboardClient({
                 </div>
               )}
             </div>
+
+            {selectedLead.website && (
+              <div className="rounded-lg border border-[#c8c4bc15] bg-[#141414] px-3.5 py-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono uppercase tracking-wider text-[#c8c4bc70]">Website audit queue</span>
+                  {selectedLead.audit_next_attempt_at ? (
+                    <span className="text-[#e8b85d]">Retry queued for {mounted ? new Date(selectedLead.audit_next_attempt_at).toLocaleString() : '…'}</span>
+                  ) : selectedLead.audit_attempts >= 3 ? (
+                    <span className="text-[#e8b85d]">Automatic retries exhausted; review site and contact route</span>
+                  ) : selectedLead.audit_attempts > 0 ? (
+                    <span className="text-[#e8b85d]">Previous audit attempt failed; retry is pending</span>
+                  ) : selectedLead.last_audited_at ? (
+                    <span className="text-[#6dc86d]">Last successful audit {mounted ? new Date(selectedLead.last_audited_at).toLocaleString() : '…'}</span>
+                  ) : (
+                    <span className="text-[#c8c4bc]">Waiting for website audit</span>
+                  )}
+                </div>
+                {selectedLead.audit_attempts > 0 && (
+                  <p className="mt-1.5 text-[#c8c4bc60]">Failed audit attempts: {selectedLead.audit_attempts} of 3. The system will retry automatically when due.</p>
+                )}
+              </div>
+            )}
 
             {/* Audit Scores Grid */}
             {selectedLead.opportunity_score !== null && (

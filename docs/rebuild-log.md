@@ -181,3 +181,4 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Verification: `npm run lint` (0 errors, existing unused-variable warnings), `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed.
 - Runtime smoke test was attempted, but local Next development server database initialization returned a connection `ErrorEvent`; no live lead state was changed by that failed request.
 - Next action: manually re-check the strongest observations on mobile, record decision-maker/channel evidence, then start permission-based conversations one at a time.
+- Added audit retry visibility to the selected lead's Intel panel and next-action label, using the live `audit_attempts` and `audit_next_attempt_at` fields. Failed prior attempts are shown as pending/retry states rather than incorrectly described as successful audits; scheduled retry time is localized in the browser. No pipeline was forced and no external contact was made.
