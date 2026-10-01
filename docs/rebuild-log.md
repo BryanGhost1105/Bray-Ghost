@@ -59,7 +59,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 - [x] Store contact source, confidence, and verification method
 - [x] Reject low-confidence contacts from approval by default
 - [ ] Preserve source URLs for every audit observation
-- [ ] Validate redirect destinations during crawling
+- [x] Validate redirect destinations during crawling
 - [ ] Protect AI prompts from untrusted website instructions
 - [ ] Add Gmail reply and out-of-office detection
 - [ ] Stop follow-ups immediately after replies, bounces, or opt-outs
@@ -182,3 +182,5 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Runtime smoke test was attempted, but local Next development server database initialization returned a connection `ErrorEvent`; no live lead state was changed by that failed request.
 - Next action: manually re-check the strongest observations on mobile, record decision-maker/channel evidence, then start permission-based conversations one at a time.
 - Added audit retry visibility to the selected lead's Intel panel and next-action label, using the live `audit_attempts` and `audit_next_attempt_at` fields. Failed prior attempts are shown as pending/retry states rather than incorrectly described as successful audits; scheduled retry time is localized in the browser. No pipeline was forced and no external contact was made.
+- Closed the crawler redirect-validation gap: website auditing, contact-page enrichment, and search-result fetching now use a shared manual-redirect handler that validates every destination before requesting it, blocks local/private literal targets, and caps redirect hops. TypeScript passed; lint passed with 0 errors and the same 8 existing warnings. Smoke-tested that a private redirect is rejected before a second fetch and a relative public redirect succeeds. No live lead data was changed.
+- Attempted read-only live cohort verification, but this environment could not establish the Neon WebSocket connection; the live cohort counts and scheduled audit retries are therefore not re-verified in this turn.

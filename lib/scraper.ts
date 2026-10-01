@@ -8,6 +8,9 @@ import {
 } from './emailQuality'
 import { isSuppressedEmail } from './suppression'
 import { SCRAPE_TIMEOUT_MS } from './constants'
+import { fetchWithSafeRedirects, isSafeUrl } from './safeFetch'
+
+export { isSafeUrl } from './safeFetch'
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
@@ -17,55 +20,6 @@ const INTERNAL_PAGE_TIMEOUT_MS = 6000
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-/**
- * Validates external URLs to prevent SSRF vulnerabilities (loopback, private ranges, metadata).
- */
-export function isSafeUrl(targetUrl: string): boolean {
-  try {
-    const formatted = /^https?:\/\//i.test(targetUrl) ? targetUrl : `https://${targetUrl}`
-    const parsed = new URL(formatted)
-
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return false
-    }
-
-    const host = parsed.hostname.toLowerCase()
-
-    // Block localhost and standard test domains
-    if (
-      host === 'localhost' ||
-      host.endsWith('.localhost') ||
-      host.endsWith('.local') ||
-      host.endsWith('.internal') ||
-      host.endsWith('.test') ||
-      host.endsWith('.example')
-    ) {
-      return false
-    }
-
-    // Block IPv4 private/loopback/cloud metadata ranges
-    if (
-      /^127\./.test(host) ||
-      /^0\./.test(host) ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host) ||
-      /^169\.254\./.test(host)
-    ) {
-      return false
-    }
-
-    // Block IPv6 loopback and private
-    if (host === '::1' || host === '[::1]' || host.startsWith('fc00:') || host.startsWith('fe80:')) {
-      return false
-    }
-
-    return true
-  } catch {
-    return false
-  }
 }
 
 function normalizeUrl(url: string): string {
@@ -85,9 +39,8 @@ async function fetchPageHtml(url: string, timeoutMs: number): Promise<string> {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithSafeRedirects(url, {
       signal: controller.signal,
-      redirect: 'follow',
       headers: {
         'User-Agent': USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',

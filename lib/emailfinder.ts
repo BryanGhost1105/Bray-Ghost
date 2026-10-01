@@ -2,7 +2,7 @@ import { pool } from './db'
 import * as cheerio from 'cheerio'
 import { parseAllValidEmails, type DiscoveredEmail } from './emailQuality'
 import { isSuppressedEmail } from './suppression'
-import { isSafeUrl } from './scraper'
+import { fetchWithSafeRedirects, isSafeUrl } from './safeFetch'
 import { MAX_EMAIL_SEARCH_RESULTS } from './constants'
 
 const DDG_HTML_URL = 'https://html.duckduckgo.com/html/'
@@ -88,9 +88,8 @@ async function fetchHtml(url: string, timeoutMs: number): Promise<string> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithSafeRedirects(url, {
       signal: controller.signal,
-      redirect: 'follow',
       headers: { 'User-Agent': USER_AGENT },
     })
     if (!res.ok) {

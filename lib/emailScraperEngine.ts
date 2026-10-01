@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio'
 import dns from 'dns'
 import { pool } from './db'
-import { isSafeUrl } from './scraper'
+import { fetchWithSafeRedirects, isSafeUrl } from './safeFetch'
 import {
   parseAllValidEmails,
   isValidBusinessEmail,
@@ -107,14 +107,13 @@ async function fetchHtmlSafe(url: string, timeoutMs = TIMEOUT_MS): Promise<strin
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithSafeRedirects(url, {
       signal: controller.signal,
       headers: {
         'User-Agent': USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
-      redirect: 'follow',
     })
 
     if (!res.ok) return null
