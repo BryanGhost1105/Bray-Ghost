@@ -85,6 +85,29 @@ export async function sendFollowUps(
 
     try {
       await sleep(sendDelayMs())
+      // Reply/opt-out may have been recorded while this follow-up waited in the
+      // human-like send delay. Re-check immediately before contacting Gmail.
+      const stillEligible = await pool.query(
+        `SELECT id FROM leads
+         WHERE id = $1
+           AND status = 'sent'
+           AND replied_at IS NULL
+           AND unsubscribed_at IS NULL
+           AND followup_sent_at IS NULL
+           AND followup_approval_status = 'approved'
+           AND followup_claimed_at IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM suppressed_emails se WHERE se.email = lower(leads.email))`,
+        [lead.id]
+      )
+      if (!stillEligible.rows[0]) {
+        await pool.query(
+          `UPDATE leads SET followup_claimed_at = NULL, followup_next_attempt_at = NULL
+           WHERE id = $1 AND followup_claimed_at IS NOT NULL`,
+          [lead.id]
+        )
+        continue
+      }
+
       const fullBody = appendComplianceFooter(body, lead.unsubscribe_token)
       const emailPromise = transporter.sendMail({
         from: fromEmail,

@@ -61,8 +61,8 @@ If a gate fails, reduce scope or change the offer before adding features.
 - [x] Preserve source URLs for every audit observation
 - [x] Validate redirect destinations during crawling
 - [x] Protect AI prompts from untrusted website instructions
-- [ ] Add Gmail reply and out-of-office detection
-- [ ] Stop follow-ups immediately after replies, bounces, or opt-outs
+- [ ] Add Gmail reply and out-of-office detection (requires restricted inbox access and renewed OAuth consent; intentionally not enabled)
+- [x] Stop follow-ups after replies, bounces, or opt-outs are recorded; re-check eligibility immediately before follow-up dispatch
 
 ### Phase 2 — One offer and one market
 
@@ -188,3 +188,4 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Production verification after DNS-pinning change: `npm run build` passed on Next.js 16.3.0, including compilation, TypeScript, and page generation. External live-crawl execution is still unverified from this sandbox.
 - Extended saved website audits with per-fact source URL and observation time metadata, and exposed a source link beside every fact in the Intel panel. Legacy audit records remain readable and simply omit unavailable source metadata. Local audit smoke test verified every emitted fact retains the audited page URL and shared observation timestamp; TypeScript and lint passed with 0 errors and 8 pre-existing warnings.
 - Hardened AI use across outreach generation, obfuscated-email extraction, follow-up generation, and niche expansion: external values are serialized as untrusted JSON in user messages, system instructions explicitly forbid following embedded commands, initial/follow-up outputs reject prompt-override language and control characters, and unsafe fallback observations are omitted. Niche suggestions are length-limited, filtered, and capped at five. Prompt-boundary smoke test, TypeScript, lint (0 errors; same 8 warnings), and `npm run build` passed. No external message was sent and no lead state was changed.
+- Closed a recorded-reply race: marking a prospect replied now revokes follow-up approval and clears its queued claim; the follow-up worker rechecks reply, unsubscribe, suppression, approval, and claim state after its send delay and immediately before Gmail dispatch. Removed a dashboard “+1 Log Reply” control that supplied no lead ID and did not actually record a reply. Inbox auto-detection remains off because it requires restricted Gmail read access and renewed OAuth consent. `npx tsc --noEmit`, `npm run lint` (0 errors; same 8 existing unused-variable warnings), `git diff --check`, and `npm run build` passed. No live send test was run.

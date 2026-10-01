@@ -87,31 +87,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true })
     }
 
-    if (action === 'log_reply') {
-      const { leadId } = body
-      let replyRecorded = false
-      if (leadId) {
-        const replyResult = await pool.query(
-          `UPDATE leads SET replied_at = COALESCE(replied_at, NOW()) WHERE id = $1`,
-          [leadId]
-        )
-        replyRecorded = (replyResult.rowCount || 0) > 0
-      }
-      if (replyRecorded) {
-        await pool.query(`UPDATE settings SET replies_count = COALESCE(replies_count, 0) + 1 WHERE id = 1`)
-      }
-      return NextResponse.json({ success: true })
-    }
-
     if (action === 'toggle_lead_reply') {
       const { leadId, replied } = body
-      if (!leadId) {
-        return NextResponse.json({ error: 'leadId is required' }, { status: 400 })
+      if (typeof leadId !== 'string' || !leadId || typeof replied !== 'boolean') {
+        return NextResponse.json({ error: 'leadId and a boolean replied value are required' }, { status: 400 })
       }
       if (replied) {
-        await pool.query('UPDATE leads SET replied_at = NOW() WHERE id = $1', [leadId])
+        const result = await pool.query(
+          `UPDATE leads
+           SET replied_at = COALESCE(replied_at, NOW()),
+               followup_approval_status = 'pending',
+               followup_approved_at = NULL,
+               followup_approved_by = NULL,
+               followup_claimed_at = NULL,
+               followup_next_attempt_at = NULL
+           WHERE id = $1
+           RETURNING id`,
+          [leadId]
+        )
+        if (!result.rowCount) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
       } else {
-        await pool.query('UPDATE leads SET replied_at = NULL WHERE id = $1', [leadId])
+        const result = await pool.query('UPDATE leads SET replied_at = NULL WHERE id = $1 RETURNING id', [leadId])
+        if (!result.rowCount) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
       }
       return NextResponse.json({ success: true })
     }

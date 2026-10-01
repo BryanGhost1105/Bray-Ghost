@@ -772,22 +772,8 @@ export default function DashboardClient({
     }
   }
 
-  const handleLogReply = async (leadId?: string) => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'log_reply', leadId }),
-      })
-      if (res.ok) {
-        router.refresh()
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   const handleToggleLeadReply = async (leadId: string, replied: boolean) => {
+    if (replied && !window.confirm('Confirm that this prospect actually replied. Coldstart will cancel any approved or queued follow-up for this prospect.')) return
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
@@ -2957,15 +2943,6 @@ export default function DashboardClient({
                 </p>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-center">
-                {statsModalType === 'replies' && (
-                  <button
-                    type="button"
-                    onClick={() => handleLogReply()}
-                    className="px-3 py-1.5 bg-[#c8a44b15] hover:bg-[#c8a44b25] border border-[#c8a44b50] text-[#c8a44b] rounded-lg text-xs font-mono font-medium transition-all"
-                  >
-                    +1 Log Reply
-                  </button>
-                )}
                 <button
                   onClick={() => setStatsModalType(null)}
                   className="text-[#c8c4bc70] hover:text-white p-1 text-sm font-mono"
