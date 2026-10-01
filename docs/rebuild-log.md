@@ -58,7 +58,7 @@ If a gate fails, reduce scope or change the offer before adding features.
 
 - [x] Store contact source, confidence, and verification method
 - [x] Reject low-confidence contacts from approval by default
-- [ ] Preserve source URLs for every audit observation
+- [x] Preserve source URLs for every audit observation
 - [x] Validate redirect destinations during crawling
 - [ ] Protect AI prompts from untrusted website instructions
 - [ ] Add Gmail reply and out-of-office detection
@@ -186,3 +186,4 @@ If a gate fails, reduce scope or change the offer before adding features.
 - Attempted read-only live cohort verification, but this environment could not establish the Neon WebSocket connection; the live cohort counts and scheduled audit retries are therefore not re-verified in this turn.
 - Strengthened the redirect fix against DNS rebinding: every request resolves its destination once, rejects any non-public answer (including private, loopback, link-local, metadata, documentation, and transition ranges), and pins the socket to one of those checked addresses while retaining the requested hostname for HTTP/TLS. Safe crawler transport is GET/HEAD-only. TypeScript/lint and offline IP/URL guard smoke checks passed; full external crawl and live cohort checks remain unverified because outbound Neon/network access is unavailable in this environment.
 - Production verification after DNS-pinning change: `npm run build` passed on Next.js 16.3.0, including compilation, TypeScript, and page generation. External live-crawl execution is still unverified from this sandbox.
+- Extended saved website audits with per-fact source URL and observation time metadata, and exposed a source link beside every fact in the Intel panel. Legacy audit records remain readable and simply omit unavailable source metadata. Local audit smoke test verified every emitted fact retains the audited page URL and shared observation timestamp; TypeScript and lint passed with 0 errors and 8 pre-existing warnings.

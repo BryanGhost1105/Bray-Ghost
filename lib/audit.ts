@@ -11,7 +11,15 @@ export interface AuditIssue {
   recommendation: string
 }
 
+export interface AuditFactEvidence {
+  fact: string
+  sourceUrl: string
+  observedAt: string
+}
+
 export interface AuditResult {
+  sourceUrl: string
+  observedAt: string
   seoScore: number
   mobileScore: number
   performanceScore: number
@@ -25,6 +33,7 @@ export interface AuditResult {
   topIssues: AuditIssue[]
   quickWins: string[]
   verifiedFacts: string[] // Concrete, measured facts for AI generation verbatim citation
+  verifiedFactEvidence: AuditFactEvidence[]
   pageSpeed?: PageSpeedMetrics | null
   details: {
     title: string
@@ -600,7 +609,11 @@ export function auditWebsite(
   const primary = candidates[0]
   const secondary = candidates[1]
 
+  const observedAt = new Date().toISOString()
+
   return {
+    sourceUrl: url,
+    observedAt,
     seoScore: finalSeo,
     mobileScore: finalMobile,
     performanceScore: finalPerformance,
@@ -614,6 +627,11 @@ export function auditWebsite(
     topIssues: issues.slice(0, 5),
     quickWins: Array.from(new Set(quickWins)).slice(0, 3),
     verifiedFacts: Array.from(new Set(verifiedFacts)),
+    verifiedFactEvidence: Array.from(new Set(verifiedFacts)).map((fact) => ({
+      fact,
+      sourceUrl: url,
+      observedAt,
+    })),
     pageSpeed: ps || null,
     details: {
       title,

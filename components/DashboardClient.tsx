@@ -19,6 +19,9 @@ interface PageSpeedDetails {
 }
 
 export interface AuditDetails {
+  sourceUrl?: string
+  observedAt?: string
+  verifiedFactEvidence?: Array<{ fact: string; sourceUrl: string; observedAt: string }>
   topIssues?: AuditIssue[]
   quickWins?: string[]
   verifiedFacts?: string[]
@@ -2286,24 +2289,40 @@ export default function DashboardClient({
               </div>
             )}
 
-            {/* Verified Measured Facts (Zero-Hallucination Lab Data) */}
+            {/* Measured page observations with their source and audit time */}
             {selectedLead.audit_details?.verifiedFacts && selectedLead.audit_details.verifiedFacts.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-mono text-[#6dc86d] uppercase tracking-wider font-semibold">
-                    Verified Ground Truth Facts
+                    Automated Page Observations
                   </span>
                   <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#6dc86d]/10 text-[#6dc86d] border border-[#6dc86d]/20">
-                    Lighthouse &amp; Scrape Verbatim
+                    Measured from checked page
                   </span>
+                  {selectedLead.audit_details.sourceUrl && (
+                    <a href={selectedLead.audit_details.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-mono text-[#c8a44b] hover:underline">
+                      Open source page
+                    </a>
+                  )}
+                  {selectedLead.audit_details.observedAt && (
+                    <span className="text-[10px] font-mono text-[#c8c4bc50]">
+                      Checked {mounted ? new Date(selectedLead.audit_details.observedAt).toLocaleString() : '…'}
+                    </span>
+                  )}
                 </div>
                 <div className="bg-[#141414] border border-[#6dc86d]/20 rounded-lg p-3 space-y-1.5">
-                  {selectedLead.audit_details.verifiedFacts.map((fact: string, idx: number) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs font-mono text-[#c8c4bc]">
-                      <span className="text-[#6dc86d] text-xs"><CheckCircle2 size={14} /></span>
-                      <span>{fact}</span>
-                    </div>
-                  ))}
+                  {selectedLead.audit_details.verifiedFacts.map((fact: string, idx: number) => {
+                    const evidence = selectedLead.audit_details?.verifiedFactEvidence?.[idx]
+                    return (
+                      <div key={idx} className="flex items-start gap-2 text-xs font-mono text-[#c8c4bc]">
+                        <span className="text-[#6dc86d] text-xs"><CheckCircle2 size={14} /></span>
+                        <span className="min-w-0 flex-1">{fact}</span>
+                        {evidence?.sourceUrl && (
+                          <a href={evidence.sourceUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[10px] text-[#c8a44b] hover:underline">Source</a>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
