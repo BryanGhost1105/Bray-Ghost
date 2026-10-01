@@ -25,6 +25,7 @@ try {
     WHERE lower(n.label) = lower('Solar Installer')
       AND lower(n.city) = lower('Port Harcourt, Nigeria')
       AND l.status = 'new'
+      AND l.last_audited_at IS NULL
     ORDER BY l.created_at ASC
   `)
 
@@ -46,6 +47,8 @@ try {
       success: body.success,
       scrapedOk: body.scrapedOk,
       generatedOk: body.generatedOk,
+      leadStatus: body.lead?.status,
+      auditedAt: body.lead?.last_audited_at,
       message: body.message || body.error,
     })
   }

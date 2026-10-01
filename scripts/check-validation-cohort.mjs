@@ -30,7 +30,7 @@ try {
 
   const summary = result.rows[0]
   const violations = []
-  if (Number(summary.total) < 20) violations.push(`expected at least 20 leads, found ${summary.total}`)
+  if (Number(summary.total) < 30) violations.push(`expected at least 30 leads, found ${summary.total}`)
   if (Number(summary.non_pending_approvals) !== 0) violations.push('one or more cohort leads have a non-pending approval')
   if (Number(summary.approved_without_verification) !== 0) violations.push('one or more approved leads lack source verification')
   if (Number(summary.sent) !== 0) violations.push('one or more cohort leads have been sent')

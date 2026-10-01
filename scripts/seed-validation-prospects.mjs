@@ -27,6 +27,16 @@ const prospects = [
   { business: 'ECAFGOLDEN SOLAR', website: 'https://www.ecafgoldensolar.com.ng/' },
   { business: 'EnergyCare', website: null },
   { business: 'Solution Energy and Engineering Services', website: 'https://www.solutionenergylimited.com/' },
+  { business: 'Flowcrown Technologies', website: 'https://flowcrown.com/' },
+  { business: 'Ibis Technologies', website: 'https://ibistechnologies.com.ng/' },
+  { business: 'Felson Solar Solutions', website: 'https://www.felsonsolar.com/' },
+  { business: 'Almond Solutions', website: 'https://www.almondsolutions.com.ng/' },
+  { business: 'Francostech Limited', website: 'https://francostech.com/' },
+  { business: 'Reverse Energy', website: 'https://reverseenergy.ng/' },
+  { business: 'Nyesco Energy Service', website: 'https://www.nyescoenergy.com/' },
+  { business: 'Enerplaz PayGo', website: 'https://enerplazpaygo.com/' },
+  { business: 'Tovero Energy', website: 'http://www.toveroenergy.com/' },
+  { business: 'A.O. Demarg', website: 'https://aodemarg.com/' },
 ]
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
@@ -58,7 +68,7 @@ try {
       `INSERT INTO leads (niche_id, business_name, address, website, status, initial_approval_status, followup_approval_status)
        SELECT $1, $2, $3, $4, 'new', 'pending', 'pending'
        WHERE NOT EXISTS (
-         SELECT 1 FROM leads WHERE lower(business_name) = lower($2) AND website = $4
+         SELECT 1 FROM leads WHERE lower(business_name) = lower($2) AND website IS NOT DISTINCT FROM $4
        )
        RETURNING id, business_name`,
       [nicheId, prospect.business, 'Port Harcourt, Nigeria', prospect.website]

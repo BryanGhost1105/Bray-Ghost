@@ -1,7 +1,7 @@
 # Commercial Validation: Port Harcourt Solar Installers
 
 **Created:** 2026-09-26  
-**Status:** hypothesis selected, 10 prospects audited/researched, 10 additional public-source candidates queued for verification, permission-based outreach not started
+**Status:** hypothesis selected, 30 public-source candidates defined for Coldstart; latest audit state is pending confirmation after a live database timeout; permission-based outreach not started
 **Owner:** Jephtah
 
 ## Hypothesis
@@ -18,7 +18,7 @@ This is a validation hypothesis, not a promise of rankings, leads, or revenue.
 
 - The Nigerian Investment Promotion Commission describes businesses, hospitals, universities, and factories as active buyers of commercial and industrial rooftop solar, driven partly by unreliable grid power and diesel costs. [NIPC energy sector overview](https://nipc.gov.ng/sectors/energy)
 - The IEA's 2026 electricity outlook describes Nigeria's solar PV growth as being on a sharp upward trajectory and forecasts continued electricity-demand growth. [IEA Electricity 2026](https://iea.blob.core.windows.net/assets/88bb4abe-0308-42f9-a46f-c776a9528522/Electricity_2026.pdf)
-- Public search results show a sufficiently deep local market with companies serving Port Harcourt across residential, commercial, industrial, maintenance, and battery-storage segments. The research pool now contains 20 candidates; only the original 10 have entered Coldstart's audited cohort.
+- Public search results show a sufficiently deep local market with companies serving Port Harcourt across residential, commercial, industrial, maintenance, and battery-storage segments. The research pool now contains 30 candidates; the application is responsible for auditing and verifying the newly seeded records.
 
 ## Initial prospect pool
 
@@ -39,7 +39,7 @@ These are research candidates only. Before any outreach, manually verify the bus
 
 ### Expanded research pool — public-source candidates
 
-These additional candidates are not yet seeded or contact-cleared. The source links establish that they serve Port Harcourt or the surrounding Rivers market; contact details, decision-makers, and website observations must still be verified directly before use.
+These additional entries are research candidates. Their public sources support market presence only; Coldstart must still confirm the business, live website, contact route, decision-maker, and current observation before a prospect can be considered for contact.
 
 | # | Business | Public source | First observation to verify | Likely channel |
 |---:|---|---|---|---|
@@ -53,6 +53,17 @@ These additional candidates are not yet seeded or contact-cleared. The source li
 | 18 | ECAFGOLDEN SOLAR | [About page](https://www.ecafgoldensolar.com.ng/about) | Rivers-founded solar engineering company serving Port Harcourt; test whether institutional buyers have a distinct enquiry flow | Website / email |
 | 19 | EnergyCare | [LinkedIn company profile](https://ng.linkedin.com/company/energycare1) | Port Harcourt energy installation and maintenance network; test whether maintenance enquiries are easy to start online | Website / LinkedIn |
 | 20 | Solution Energy and Engineering Services | [LinkedIn company profile](https://ng.linkedin.com/company/solution-energy-and-engineering-services-ltd) · [solutionenergylimited.com](https://www.solutionenergylimited.com) | Engineering company with renewable-energy services; test whether solar visitors are separated from broader technical services | Website / LinkedIn |
+
+| 21 | Flowcrown Technologies | [flowcrown.com](https://flowcrown.com/) | Port Harcourt solar, inspection, installation, and maintenance operator; test whether the specialist services have distinct enquiry paths | Website / phone |
+| 22 | Ibis Technologies | [ibistechnologies.com.ng](https://ibistechnologies.com.ng/) | Port Harcourt solar and security operator with a quote form and live-chat claim; test whether the form produces a clear human handoff | Website / phone |
+| 23 | Felson Solar Solutions | [felsonsolar.com](https://www.felsonsolar.com/) | Solar installation and maintenance operator serving Port Harcourt and Bayelsa; test quote qualification and mobile CTA clarity | Website / phone |
+| 24 | Almond Solutions | [almondsolutions.com.ng](https://www.almondsolutions.com.ng/about-us) | Port Harcourt distributor, installer, and inverter repair provider; test whether service visitors can reach the right team quickly | Website / phone |
+| 25 | Francostech Limited | [francostech.com](https://francostech.com/) | Port Harcourt solar and security operator with project proof; test whether solar buyers can separate from security enquiries | Website / phone |
+| 26 | Reverse Energy | [reverseenergy.ng](https://reverseenergy.ng/) | Port Harcourt renewable-energy provider with product and consultation paths; test whether product CTAs capture useful project context | Website / WhatsApp |
+| 27 | Nyesco Energy Service | [company profile](https://www.nyescoenergy.com/wp-content/uploads/2019/07/profile.pdf) | Public profile places an inverter and solar service at Trans-Amadi; verify current website, offer, and enquiry route | Phone / website |
+| 28 | Enerplaz PayGo | [company profile](https://ng.linkedin.com/company/enerplaz-paygo) · [enerplazpaygo.com](https://enerplazpaygo.com/) | Port Harcourt solar/pay-as-you-go operator; test whether financing and installation enquiries are clearly separated | Website / LinkedIn |
+| 29 | Tovero Energy | [company profile](https://www.linkedin.com/company/tovero-energy/?originalSubdomain=ng) · [toveroenergy.com](http://www.toveroenergy.com/) | Port Harcourt renewable-energy company; verify current site availability and whether a buyer can start a project enquiry | Website / LinkedIn |
+| 30 | A.O. Demarg | [contact page](https://aodemarg.com/contact-us/) | Public contact page lists a Port Harcourt office and solar-related business presence; test whether the site gives a direct quote path | Website / phone |
 
 ## Research checklist for every prospect
 
