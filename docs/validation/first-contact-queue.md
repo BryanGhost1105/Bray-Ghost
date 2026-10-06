@@ -6,9 +6,30 @@
 
 These are permission requests, not audits or proposals. After sending, record an `attempted` interaction in Coldstart with the channel and timestamp. Do not mark a conversation until a person replies and discusses the observation.
 
-**Re-check status on 2026-09-30:** Solartricity is **on hold**. Its currently indexed contact address conflicts with the address below, so do not email it until a company-controlled page confirms the recipient.
+**Re-check status on 2026-10-06:** Solartricity remains **on hold**. Its official-site search result exposes `info@solartricty.com.ng`, while the stored contact and brand spelling differ. The directly retrievable page did not confirm the stored address. Do not contact by email until the business-controlled page and address are manually reconciled.
 
-## Current order to verify before a first contact
+## Source re-check — 2026-10-06
+
+This is a remote text/index review, not a device-specific mobile test or mailbox verification. A search/open result can be cached; re-open the business page yourself immediately before any contact. No prospect was contacted and no address was tested for delivery in this review.
+
+- **Rafrank Integrated remains the first manual-check candidate, not cleared to send.** Its solar page was retrievable and still describes solar installation, maintenance, and sales; it says enquiries go through its contact page and lists `info@rafrankltd.com`, a phone number, and a Port Harcourt address. The page offers a general contact route rather than a visible solar-specific form in the retrieved text. That is an observation to verify on the live page, not evidence of lost enquiries. Source: https://rafrankltd.com/solar.php (retrieved 2026-10-06; search/open cache age uncertain).
+- **Pet-Feb becomes a secondary manual-check candidate.** The retrievable official site currently presents product/shop, projects, training, and contact routes, plus a contact form asking for name, email, phone, address, city, ZIP, option, and message. The form's required fields and actual mobile behavior were not verified; ask only whether a shorter initial enquiry would be useful if a manual mobile check confirms the form is burdensome. The site lists a Port Harcourt address and `info@petfeb.com`. Source: https://www.petfeb.com/ (retrieved 2026-10-06).
+- **Solar World Electric is a benchmark, not a defect-led target.** Its current indexed homepage/contact page describes a substantial multi-branch operation, free assessment, WhatsApp, and a consultation form. Do not use the old “missing enquiry path” angle. Sources: https://www.solarworldelectric.com/ and https://www.solarworldelectric.com/contact.html (retrieved 2026-10-06).
+- **GoSolar Ng is also a benchmark pending a real, specific observation.** Its current indexed contact page offers phone, email, office hours, a sizing calculator, contact form, and a stated one-business-day response. Do not pitch a generic enquiry-path defect. Source: https://www.gosolar.ng/contact-us (retrieved 2026-10-06).
+- **Tovero Energy is removed from the first-contact priority order** because this experiment is specifically solar installers; it is a broader energy-services company. Its currently retrievable page has a dated AICCEES event listing, but that indexed content alone is not enough to claim the live page is stale. Do not contact using the new automated date signal without a fresh manual check.
+- **Dayli Energy and Sombreiro Energy remain unconfirmed in this pass.** Their official pages timed out in the text retrieval. The existing notes are not a current clearance; manually inspect the page before using any copy.
+
+### Updated order for a human re-check before first contact
+
+1. Rafrank Integrated — confirm the page still routes solar enquiries only through the general contact path, test contact ease on mobile, and confirm the recipient/channel.
+2. Pet-Feb — manually test whether the multi-field form is genuinely onerous for an initial product/installation enquiry; if it is not, do not pitch it.
+3. Hold all other candidates until a current, specific observation and correct contact route are established.
+
+These are **not approved-to-send** records. The remote retrieval is insufficient to clear a current observation, decision-maker, channel, or mailbox. The human operator must perform the final checks and decide whether to make contact.
+
+## Earlier candidate notes — superseded by the 2026-10-06 re-check below
+
+The following historical notes and draft copy are retained for auditability, but the old rank order is no longer current. Do not treat them as clearance to send. The section titled “Updated order” below controls.
 
 1. **Rafrank Integrated** — its current solar page identifies the Port Harcourt office, phone, email, and solar offer. Ask permission to share the specific general-contact handoff observation; the page was rechecked on 2026-10-01.
 2. **Felson Solar Solutions** — Coldstart audit opportunity score 25; its current site lists an email and two phone numbers. Verify the tap-to-call detail on a phone before using the observation below.
