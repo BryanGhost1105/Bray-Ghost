@@ -5,6 +5,7 @@
 **Status:** pricing and scope hypothesis; not yet validated in a paid conversation.
 **Test price:** **₦125,000 fixed**, split 50% to begin and 50% after preview approval, before public launch.
 **Delivery target:** 7 calendar days after deposit and receipt of all required content, access, and decisions.
+**Illustrative build:** `/demo/launch-site` is a fictional solar-business concept for internal preview only. It is not a client project, has no live contact route, and must not be represented as completed client work.
 
 ## Fit and qualification
 

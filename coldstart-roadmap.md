@@ -10,7 +10,7 @@
 
 Nothing else is safe to build on top of until these are done.
 
-**Additional urgent data-policy item (identified 2026-10-06):** `lib/discovery.ts` persists Places-returned names, addresses, website URLs, phone numbers, ratings, and review counts in `leads`. Google's current [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies) say Places content must not be pre-fetched, cached, or stored beyond limited exceptions; Place IDs are exempt. Design discovery around permitted, independently sourced lead data or obtain written permission before expanding this path. Do not bulk-delete existing lead data without an explicit data-retention decision.
+**Additional urgent data-policy item (identified 2026-10-06):** `lib/discovery.ts` persists Places-returned names, addresses, website URLs, phone numbers, ratings, and review counts in `leads`. Google's current [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies) say Places content must not be pre-fetched, cached, or stored beyond limited exceptions; Place IDs are exempt. The official [CAC/iCRP terms](https://icrp.cac.gov.ng/legal/terms-of-use/) also limit site content to personal use and prohibit incorporating it into an information-retrieval system (Section 4), so the public search page is not an approved CRM-import source. Use independently sourced lead data under terms that permit retention, or obtain written permission before expanding data ingestion. Do not bulk-delete existing lead data without an explicit data-retention decision.
 
 | Item | Why urgent | Effort |
 |---|---|---|
