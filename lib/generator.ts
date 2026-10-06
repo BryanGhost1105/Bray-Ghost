@@ -37,8 +37,8 @@ function buildPermissionFirstFallback(lead: LeadForGeneration): AiEmailContent {
 
   if (!lead.website) {
     return {
-      subject: `Quick question about ${businessName}'s online enquiries`,
-      body: `Hi, I was looking for ${businessName} online and wondered what path customers currently use to learn about your services and enquire. I may be missing context, so I do not want to assume there is a gap. Would it be useful if I sent a short idea for making that path clearer online?\n\nBryan`,
+      subject: `Quick question about ${businessName}'s online presence`,
+      body: `Hi, I was trying to understand how customers learn about ${businessName} and get in touch. I may have missed an existing site or preferred contact path, so I do not want to assume there is a problem. If a simple page explaining your services and giving customers a direct way to enquire is something you are considering, would it be useful if I sent a short outline?\n\nBryan`,
     }
   }
 
