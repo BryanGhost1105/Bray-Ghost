@@ -181,17 +181,24 @@ ${encodeUntrustedPromptData({
   })}`
 
   let emailData: AiEmailContent
-  try {
-    emailData = await callDeepSeekJson(
-      systemPrompt,
-      userMessage,
-      parseEmailResponse
-    )
-    validatePermissionFirstDraft(emailData)
-  } catch {
-    // A deterministic draft keeps the research workflow usable when the free
-    // AI quota is exhausted or the model returns an unsafe sales claim.
+  if (!hasWebsite) {
+    // A missing Places website URL is not proof that the business has no site.
+    // Keep this segment on cautious, deterministic copy rather than prompting
+    // an LLM with an unverified absence claim.
     emailData = buildPermissionFirstFallback(lead)
+  } else {
+    try {
+      emailData = await callDeepSeekJson(
+        systemPrompt,
+        userMessage,
+        parseEmailResponse
+      )
+      validatePermissionFirstDraft(emailData)
+    } catch {
+      // A deterministic draft keeps the research workflow usable when the free
+      // AI quota is exhausted or the model returns an unsafe sales claim.
+      emailData = buildPermissionFirstFallback(lead)
+    }
   }
 
   await pool.query(

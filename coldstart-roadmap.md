@@ -10,6 +10,8 @@
 
 Nothing else is safe to build on top of until these are done.
 
+**Additional urgent data-policy item (identified 2026-10-06):** `lib/discovery.ts` persists Places-returned names, addresses, website URLs, phone numbers, ratings, and review counts in `leads`. Google's current [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies) say Places content must not be pre-fetched, cached, or stored beyond limited exceptions; Place IDs are exempt. Design discovery around permitted, independently sourced lead data or obtain written permission before expanding this path. Do not bulk-delete existing lead data without an explicit data-retention decision.
+
 | Item | Why urgent | Effort |
 |---|---|---|
 | Buy a dedicated sending domain (WhoGoHost or similar) | All outreach and deliverability work depends on owning a domain, not sending from a personal/shared one | Low |
@@ -46,7 +48,7 @@ This is where the actual conversion strategy lives — mostly logic/prompt chang
 |---|---|---|
 | Pick ONE niche + ONE city to start | Critical | Everything below is wasted effort spread across too many segments at once |
 | Signal-based lead scoring, replacing raw Google Places dump | High | Score on: recently opened, review-count trend, no/broken website, hiring signals |
-| New-business / no-website opportunity segment | High | Keep within the operator-selected niche and city. Treat "no website listed" as a discovery clue that needs independent verification; treat "first found by Coldstart" separately from a verified opening date. Track a launch-site offer separately from the existing-site repair pilot, and only mark a business recently opened when a dated, business-controlled or otherwise reliable public source supports it. |
+| New-business / no-website opportunity segment | High | Keep within the operator-selected niche and city. Treat "no website listed" as a discovery clue that needs independent verification; treat "first found by Coldstart" separately from a verified opening date. For website-missing records, use cautious deterministic permission-first copy rather than telling AI that no website exists (implemented). Track a launch-site offer separately from the existing-site repair pilot. New Places-sourced lead ingestion remains subject to the Tier 0 storage-policy item above. |
 | "Review-gap" targeting layer | High | Flag businesses ranking well but with far fewer reviews than same-page competitors — this is a stronger, more visible pain point than generic technical audits |
 | Rewrite personalization prompt (Gemini) to require one specific, checkable fact per business, or auto-reject the draft | Critical | Single highest-leverage change to reply rate |
 | Offer reframe: "I find where you're losing calls/quote requests, and fix the highest-impact ones in 48 hours" (replaces generic "I build websites/SEO") | Critical | Sells an outcome, not a technical audit |
