@@ -19,6 +19,18 @@ This is a remote text/index review, not a device-specific mobile test or mailbox
 - **Tovero Energy is removed from the first-contact priority order** because this experiment is specifically solar installers; it is a broader energy-services company. Its currently retrievable page has a dated AICCEES event listing, but that indexed content alone is not enough to claim the live page is stale. Do not contact using the new automated date signal without a fresh manual check.
 - **Dayli Energy and Sombreiro Energy remain unconfirmed in this pass.** Their official pages timed out in the text retrieval. The existing notes are not a current clearance; manually inspect the page before using any copy.
 
+### Rafrank source correction — 2026-10-06
+
+A second retrieval of the business-controlled pages makes the earlier Rafrank note more precise. The solar page is itself a dedicated Solar Energy page describing installation, maintenance, servicing, and sales; its enquiry section sends visitors to the general contact page. That contact page displays a general form with name, email, subject, and message fields, plus the public phone and `info@rafrankltd.com`. Sources: https://rafrankltd.com/solar.php and https://rafrankltd.com/contact.php (web retrieval 2026-10-06; indexed crawl age is not guaranteed to be current).
+
+Therefore, **do not claim Rafrank lacks a form, a solar page, a call route, or an enquiry path.** The only possible question is whether the generic contact handoff is the route the solar team wants prospects to use; this is not evidence of friction or lost business. No mobile usability check, form-submission test, recipient-role verification, or mailbox-delivery check has been done. Keep the record **not cleared to send** until a human re-opens both pages and decides the question is worth asking.
+
+**Revised permission-request draft (not sent):**
+
+> Hi Rafrank team, I was looking at your solar page and saw that its enquiry link goes to the general contact page. I may have missed a solar-specific quote route. Would it be useful if I sent a short note about the route a new solar customer sees?
+
+This is a question, not a defect claim. Do not attach an audit or present the ₦75,000 repair offer unless Rafrank first confirms a relevant need and agrees to discuss a scoped repair.
+
 ### Updated order for a human re-check before first contact
 
 1. Rafrank Integrated — confirm the page still routes solar enquiries only through the general contact path, test contact ease on mobile, and confirm the recipient/channel.
