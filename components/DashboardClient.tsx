@@ -145,6 +145,15 @@ interface DashboardClientProps {
 const LEAD_STATUS_TABS = ['all', 'new', 'email_needed', 'scraped', 'generated', 'sent', 'followed_up', 'no_website', 'failed', 'send_uncertain', 'unsubscribed'] as const
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
+function isRecentNoWebsiteLead(lead: Lead): boolean {
+  // Keep enriched records in this segment too: their workflow status can advance
+  // after an email is found even though they still have no website recorded.
+  if (lead.website) return false
+  const createdAt = new Date(lead.created_at).getTime()
+  const now = Date.now()
+  return Number.isFinite(createdAt) && createdAt <= now && createdAt >= now - 30 * 24 * 60 * 60 * 1000
+}
+
 function getLeadNextAction(lead: Lead): string {
   if (lead.status === 'unsubscribed') return 'Do not contact'
   if (lead.status === 'send_uncertain') return 'Check mailbox before any retry'
@@ -402,7 +411,7 @@ export default function DashboardClient({
 
   // Interactive Stats Card Modal State
   const [statsModalType, setStatsModalType] = useState<
-    'prospect_pool' | 'audited' | 'ready_to_contact' | 'sent_today' | 'total_dispatched' | 'replies' | null
+    'prospect_pool' | 'audited' | 'ready_to_contact' | 'sent_today' | 'total_dispatched' | 'replies' | 'recent_no_website' | null
   >(null)
   const [statsModalSearch, setStatsModalSearch] = useState('')
 
@@ -1348,6 +1357,23 @@ export default function DashboardClient({
               <span className="text-[10px] font-mono text-[#c8c4bc30] group-hover:text-[#8b3a2a]">↗</span>
             </div>
             <span className="text-2xl font-light font-mono text-white tabular-nums">{stats.total}</span>
+          </button>
+
+          {/* Recent businesses with no listed website: an opportunity queue, not an opening-date claim. */}
+          <button
+            type="button"
+            onClick={() => {
+              setStatsModalType('recent_no_website')
+              setStatsModalSearch('')
+            }}
+            className="bg-[#1a1a1a] border border-[#c8c4bc15] hover:border-[#c8a44b]/60 hover:bg-[#202020] rounded-xl p-4 flex flex-col justify-between space-y-2 text-left transition-all group cursor-pointer"
+            title="Review businesses first found in the last 30 days with no website listed"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[11px] text-[#c8c4bc70] group-hover:text-[#c8a44b]">Recent · No Website</span>
+              <span className="text-[10px] font-mono text-[#c8a44b]">30d</span>
+            </div>
+            <span className="text-2xl font-light font-mono text-white tabular-nums">{initialLeads.filter(isRecentNoWebsiteLead).length}</span>
           </button>
 
           {/* 2. Audited */}
@@ -2900,7 +2926,7 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* STATS CARD DETAILS MODAL (6 TABS) */}
+      {/* STATS CARD DETAILS MODAL */}
       {isStatsModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm cursor-pointer"
@@ -2931,6 +2957,7 @@ export default function DashboardClient({
                     {statsModalType === 'sent_today' && "Today's Dispatched Outreach"}
                     {statsModalType === 'total_dispatched' && 'All Dispatched Pitches & Follow-ups'}
                     {statsModalType === 'replies' && 'Inbound Replies & Client Responses'}
+                    {statsModalType === 'recent_no_website' && 'Recently Found · No Website Listed'}
                   </h3>
                 </div>
                 <p className="text-xs text-[#c8c4bc70] mt-1">
@@ -2940,6 +2967,7 @@ export default function DashboardClient({
                   {statsModalType === 'sent_today' && 'Emails transmitted today through your personal Gmail account with human-like delays.'}
                   {statsModalType === 'total_dispatched' && 'Historical log of all initial outreach emails and automated follow-ups sent to date.'}
                   {statsModalType === 'replies' && 'Track and log positive responses from prospects to close high-ticket web design & SEO deals.'}
+                  {statsModalType === 'recent_no_website' && 'First found by Coldstart in the last 30 days, with no website listed in discovery data. This does not prove the business is new or has no website—verify both before proposing a launch site.'}
                 </p>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-center">
@@ -2977,6 +3005,7 @@ export default function DashboardClient({
                       if (statsModalType === 'sent_today') return isTodayLead(lead.initial_sent_at) || isTodayLead(lead.followup_sent_at)
                       if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                       if (statsModalType === 'replies') return Boolean(lead.replied_at)
+                      if (statsModalType === 'recent_no_website') return isRecentNoWebsiteLead(lead)
                       return true
                     }).filter((lead) => {
                       if (!statsModalSearch) return true
@@ -3051,6 +3080,7 @@ export default function DashboardClient({
                     if (statsModalType === 'sent_today') return isTodayLead(lead.initial_sent_at) || isTodayLead(lead.followup_sent_at)
                     if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                     if (statsModalType === 'replies') return Boolean(lead.replied_at)
+                    if (statsModalType === 'recent_no_website') return isRecentNoWebsiteLead(lead)
                     return true
                   })
                   .filter((lead) => {

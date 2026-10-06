@@ -13,7 +13,14 @@ const env = Object.fromEntries(
 if (!env.DATABASE_URL || !env.APP_ACCESS_TOKEN) throw new Error('DATABASE_URL and APP_ACCESS_TOKEN are required in .env.local')
 
 const pool = new Pool({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 10000, query_timeout: 30000 })
-const baseUrl = process.argv[2] || 'http://localhost:3000'
+const args = process.argv.slice(2)
+const namedMode = args[0] === '--business'
+const businessName = namedMode ? args[1] : null
+const baseUrl = namedMode ? (args[2] || 'http://localhost:3000') : (args[0] || 'http://localhost:3000')
+
+if (namedMode && !businessName) {
+  throw new Error('Usage: node scripts/audit-new-validation-leads.mjs --business "Exact business name" [baseUrl]')
+}
 
 try {
   const result = await pool.query(`
@@ -22,12 +29,22 @@ try {
     JOIN niches n ON n.id = l.niche_id
     WHERE lower(n.label) = lower('Solar Installer')
       AND lower(n.city) = lower('Port Harcourt, Nigeria')
-      AND (
+      AND (($1::text IS NULL AND (
         (l.status = 'new' AND l.last_audited_at IS NULL)
         OR l.scraped_content LIKE '%(Audit attempt failed:%'
-      )
+      )) OR ($1::text IS NOT NULL
+        AND lower(l.business_name) = lower($1)
+        AND l.status = 'generated'
+        AND l.initial_sent_at IS NULL
+        AND l.replied_at IS NULL
+        AND l.initial_approval_status = 'pending'
+      ))
     ORDER BY l.created_at ASC
-  `)
+  `, [businessName])
+
+  if (namedMode && result.rows.length !== 1) {
+    throw new Error(`Expected exactly one eligible unsent, pending lead named "${businessName}"; found ${result.rows.length}. No audit was run.`)
+  }
 
   const results = []
   for (const lead of result.rows) {

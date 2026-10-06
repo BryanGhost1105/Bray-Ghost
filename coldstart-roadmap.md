@@ -46,6 +46,7 @@ This is where the actual conversion strategy lives — mostly logic/prompt chang
 |---|---|---|
 | Pick ONE niche + ONE city to start | Critical | Everything below is wasted effort spread across too many segments at once |
 | Signal-based lead scoring, replacing raw Google Places dump | High | Score on: recently opened, review-count trend, no/broken website, hiring signals |
+| New-business / no-website opportunity segment | High | Keep within the operator-selected niche and city. Treat "no website listed" as a discovery clue that needs independent verification; treat "first found by Coldstart" separately from a verified opening date. Track a launch-site offer separately from the existing-site repair pilot, and only mark a business recently opened when a dated, business-controlled or otherwise reliable public source supports it. |
 | "Review-gap" targeting layer | High | Flag businesses ranking well but with far fewer reviews than same-page competitors — this is a stronger, more visible pain point than generic technical audits |
 | Rewrite personalization prompt (Gemini) to require one specific, checkable fact per business, or auto-reject the draft | Critical | Single highest-leverage change to reply rate |
 | Offer reframe: "I find where you're losing calls/quote requests, and fix the highest-impact ones in 48 hours" (replaces generic "I build websites/SEO") | Critical | Sells an outcome, not a technical audit |
