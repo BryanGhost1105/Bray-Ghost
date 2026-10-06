@@ -69,8 +69,8 @@ function clamp(value: number, min = 0, max = 100): number {
 /**
  * Extracts copyright year from HTML footer or page text.
  */
-export function extractCopyrightYear(html: string): number | null {
-  const currentYear = new Date().getFullYear()
+export function extractCopyrightYear(html: string, asOf = new Date()): number | null {
+  const currentYear = asOf.getUTCFullYear()
   // Look for © 2018, &copy; 2019, Copyright 2017, Copyright (c) 2015-2020
   const match = html.match(/(?:©|&copy;|copyright|\(c\))\s*(?:[0-9]{4}\s*[-–/]\s*)?([12][0-9]{3})/i)
   if (match && match[1]) {
@@ -79,6 +79,65 @@ export function extractCopyrightYear(html: string): number | null {
       return year
     }
   }
+  return null
+}
+
+interface StaleUpcomingEvent {
+  label: string
+}
+
+/** Finds a past date range only when nearby page copy presents it as upcoming. */
+function findStaleUpcomingEvent(text: string, asOf: Date): StaleUpcomingEvent | null {
+  const monthNames = 'January|February|March|April|May|June|July|August|September|October|November|December'
+  const dayFirstPattern = new RegExp(
+    `\\b(\\d{1,2})(?:st|nd|rd|th)?\\s*(?:&|and|to|[-–])\\s*(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthNames})\\s+(20\\d{2})\\b`,
+    'gi'
+  )
+  const monthFirstPattern = new RegExp(
+    `\\b(${monthNames})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s*(?:&|and|to|[-–])\\s*(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(20\\d{2})\\b`,
+    'gi'
+  )
+  const monthIndexes = new Map(monthNames.split('|').map((month, index) => [month.toLowerCase(), index]))
+  const today = Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), asOf.getUTCDate())
+
+  const candidates = [
+    ...Array.from(text.matchAll(dayFirstPattern), (match) => ({
+      match,
+      startDay: Number(match[1]),
+      endDay: Number(match[2]),
+      month: match[3],
+      year: Number(match[4]),
+    })),
+    ...Array.from(text.matchAll(monthFirstPattern), (match) => ({
+      match,
+      startDay: Number(match[2]),
+      endDay: Number(match[3]),
+      month: match[1],
+      year: Number(match[4]),
+    })),
+  ].sort((left, right) => (left.match.index ?? 0) - (right.match.index ?? 0))
+
+  for (const candidate of candidates) {
+    const start = candidate.match.index ?? 0
+    const context = text.slice(Math.max(0, start - 240), start + candidate.match[0].length + 100)
+    if (!/\b(upcoming|coming soon|join us|register|save the date|registration)\b/i.test(context)) continue
+
+    const monthIndex = monthIndexes.get(candidate.month.toLowerCase())
+    if (monthIndex === undefined) continue
+
+    const startDate = new Date(Date.UTC(candidate.year, monthIndex, candidate.startDay))
+    const endDate = new Date(Date.UTC(candidate.year, monthIndex, candidate.endDay))
+    if (
+      startDate.getUTCMonth() !== monthIndex || startDate.getUTCDate() !== candidate.startDay ||
+      endDate.getUTCMonth() !== monthIndex || endDate.getUTCDate() !== candidate.endDay ||
+      endDate.getTime() < startDate.getTime() || endDate.getTime() >= today
+    ) continue
+
+    return {
+      label: `${candidate.month} ${candidate.startDay}–${candidate.endDay}, ${candidate.year}`,
+    }
+  }
+
   return null
 }
 
@@ -145,12 +204,14 @@ export function auditWebsite(
     pageSpeed?: PageSpeedMetrics | null
     brokenLinks?: string[]
     phoneCandidates?: string[]
+    asOf?: Date
   }
 ): AuditResult {
   const $ = cheerio.load(html)
+  const asOf = options?.asOf || new Date()
   const isHttps = /^https:\/\//i.test(url)
   const htmlSizeBytes = Buffer.byteLength(html, 'utf8')
-  const currentYear = new Date().getFullYear()
+  const currentYear = asOf.getUTCFullYear()
 
   // Clone text content for word count analysis
   const textClone = cheerio.load(html)
@@ -412,7 +473,7 @@ export function auditWebsite(
   const hasFavicon = $('link[rel*="icon" i]').length > 0
 
   // Stale content check (Copyright year)
-  const copyrightYear = extractCopyrightYear(html)
+  const copyrightYear = extractCopyrightYear(html, asOf)
   let yearsStale: number | null = null
   if (copyrightYear) {
     yearsStale = currentYear - copyrightYear
@@ -428,6 +489,23 @@ export function auditWebsite(
       quickWins.push(`Update website copyright year from ${copyrightYear} to ${currentYear}.`)
       verifiedFacts.push(`Website footer copyright date is ${copyrightYear} (${yearsStale} years out of date).`)
     }
+  }
+
+  // Flag expired dates only when nearby copy frames them as upcoming/event info.
+  // This is a review prompt, not an assertion that the page is broken or the
+  // event did not recur; the operator must verify the current context.
+  const staleUpcomingEvent = findStaleUpcomingEvent(bodyText, asOf)
+  if (staleUpcomingEvent) {
+    design -= 7
+    issues.unshift({
+      category: 'ux',
+      severity: 'medium',
+      title: 'Review Past-Dated Upcoming Event',
+      detail: `The page presents an event dated ${staleUpcomingEvent.label} in upcoming/event copy, but that date has passed. Confirm the event status and whether the listing should be archived or updated.`,
+      recommendation: 'Verify the event status and move completed events out of upcoming listings while preserving any useful recap or registration information.',
+    })
+    quickWins.push(`Review the past-dated event listing (${staleUpcomingEvent.label}).`)
+    verifiedFacts.push(`The page still presents an event dated ${staleUpcomingEvent.label} as upcoming/event information, although the displayed date has passed.`)
   }
 
   // Free Builder Subdomain check
@@ -609,7 +687,7 @@ export function auditWebsite(
   const primary = candidates[0]
   const secondary = candidates[1]
 
-  const observedAt = new Date().toISOString()
+  const observedAt = asOf.toISOString()
 
   return {
     sourceUrl: url,
