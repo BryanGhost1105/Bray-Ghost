@@ -12,6 +12,8 @@ Nothing else is safe to build on top of until these are done.
 
 **Additional urgent data-policy item (identified 2026-10-06):** `lib/discovery.ts` persists Places-returned names, addresses, website URLs, phone numbers, ratings, and review counts in `leads`. Google's current [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies) say Places content must not be pre-fetched, cached, or stored beyond limited exceptions; Place IDs are exempt. The official [CAC/iCRP terms](https://icrp.cac.gov.ng/legal/terms-of-use/) also limit site content to personal use and prohibit incorporating it into an information-retrieval system (Section 4), so the public search page is not an approved CRM-import source. Use independently sourced lead data under terms that permit retention, or obtain written permission before expanding data ingestion. Do not bulk-delete existing lead data without an explicit data-retention decision.
 
+**New-business targeting (implemented 2026-10-06):** Manual lead intake now supports records without email, optional discovery-source links, and optional opening dates that require an evidence URL. The dashboard has a 180-day recent-opening/no-site-recorded review segment. This is evidence-linked intake, not automatic new-business discovery; URLs missing from the record do not prove that no site exists. Automated imports remain gated on choosing a source whose terms allow retention.
+
 | Item | Why urgent | Effort |
 |---|---|---|
 | Buy a dedicated sending domain (WhoGoHost or similar) | All outreach and deliverability work depends on owning a domain, not sending from a personal/shared one | Low |

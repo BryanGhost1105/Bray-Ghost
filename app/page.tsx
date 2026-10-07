@@ -68,7 +68,8 @@ export default async function Page() {
                 replied_at, created_at, mobile_score, performance_score, design_score, ux_score,
                 technical_score, opportunity_score, outreach_angle, outreach_reason,
                 email_confidence, email_source, email_source_url, email_verification_status, email_verified_at, email_verification_method,
-                phone, audit_details, last_audited_at, audit_attempts, audit_next_attempt_at
+                phone, lead_source_url, opening_date, opening_source_url,
+                audit_details, last_audited_at, audit_attempts, audit_next_attempt_at
          from leads order by opportunity_score desc nulls last, seo_score asc nulls last, created_at desc`
       ),
 

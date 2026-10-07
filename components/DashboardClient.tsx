@@ -52,6 +52,9 @@ export interface Lead {
   email_verified_at: string | null
   email_verification_method: string | null
   phone: string | null
+  lead_source_url: string | null
+  opening_date: string | null
+  opening_source_url: string | null
   audit_details: AuditDetails | null
   generated_subject: string | null
   generated_body: string | null
@@ -152,6 +155,13 @@ function isRecentNoWebsiteLead(lead: Lead): boolean {
   const createdAt = new Date(lead.created_at).getTime()
   const now = Date.now()
   return Number.isFinite(createdAt) && createdAt <= now && createdAt >= now - 30 * 24 * 60 * 60 * 1000
+}
+
+function isRecentOpenedNoWebsiteLead(lead: Lead): boolean {
+  if (lead.website || !lead.opening_date || !lead.opening_source_url) return false
+  const openedAt = new Date(`${lead.opening_date.slice(0, 10)}T00:00:00Z`).getTime()
+  const now = Date.now()
+  return Number.isFinite(openedAt) && openedAt <= now && openedAt >= now - 180 * 24 * 60 * 60 * 1000
 }
 
 function getLeadNextAction(lead: Lead): string {
@@ -411,7 +421,7 @@ export default function DashboardClient({
 
   // Interactive Stats Card Modal State
   const [statsModalType, setStatsModalType] = useState<
-    'prospect_pool' | 'audited' | 'ready_to_contact' | 'sent_today' | 'total_dispatched' | 'replies' | 'recent_no_website' | null
+    'prospect_pool' | 'audited' | 'ready_to_contact' | 'sent_today' | 'total_dispatched' | 'replies' | 'recent_no_website' | 'recent_opened_no_website' | null
   >(null)
   const [statsModalSearch, setStatsModalSearch] = useState('')
 
@@ -449,6 +459,9 @@ export default function DashboardClient({
   const [leadWebsite, setLeadWebsite] = useState('')
   const [leadEmail, setLeadEmail] = useState('')
   const [leadCity, setLeadCity] = useState('')
+  const [leadSourceUrl, setLeadSourceUrl] = useState('')
+  const [leadOpeningDate, setLeadOpeningDate] = useState('')
+  const [leadOpeningSourceUrl, setLeadOpeningSourceUrl] = useState('')
   const [leadLoading, setLeadLoading] = useState(false)
   const [leadMessage, setLeadMessage] = useState<{ text: string; success: boolean } | null>(null)
 
@@ -1092,7 +1105,7 @@ export default function DashboardClient({
 
   const handleAddLead = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!leadName || !leadEmail) return
+    if (!leadName) return
 
     setLeadLoading(true)
     setLeadMessage(null)
@@ -1106,18 +1119,24 @@ export default function DashboardClient({
           website: leadWebsite || null,
           email: leadEmail,
           city: leadCity || null,
+          source_url: leadSourceUrl || null,
+          opening_date: leadOpeningDate || null,
+          opening_source_url: leadOpeningSourceUrl || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to add lead')
       setLeadMessage({
-        text: `Prospect "${leadName}" added to queue.`,
+        text: `Prospect "${leadName}" added to the research queue.`,
         success: true,
       })
       setLeadName('')
       setLeadWebsite('')
       setLeadEmail('')
       setLeadCity('')
+      setLeadSourceUrl('')
+      setLeadOpeningDate('')
+      setLeadOpeningSourceUrl('')
       router.refresh()
     } catch (err: unknown) {
       setLeadMessage({
@@ -1341,7 +1360,7 @@ export default function DashboardClient({
         )}
 
         {/* Interactive Stats Cards Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
           {/* 1. Prospect Pool */}
           <button
             type="button"
@@ -1357,6 +1376,22 @@ export default function DashboardClient({
               <span className="text-[10px] font-mono text-[#c8c4bc30] group-hover:text-[#8b3a2a]">↗</span>
             </div>
             <span className="text-2xl font-light font-mono text-white tabular-nums">{stats.total}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStatsModalType('recent_opened_no_website')
+              setStatsModalSearch('')
+            }}
+            className="bg-[#1a1a1a] border border-[#c8c4bc15] hover:border-[#c8a44b]/60 hover:bg-[#202020] rounded-xl p-4 flex flex-col justify-between space-y-2 text-left transition-all group cursor-pointer"
+            title="Review businesses with a sourced opening date in the last 180 days and no website URL recorded"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[11px] text-[#c8c4bc70] group-hover:text-[#c8a44b]">Recent Opening · No Site</span>
+              <span className="text-[10px] font-mono text-[#c8a44b]">180d</span>
+            </div>
+            <span className="text-2xl font-light font-mono text-white tabular-nums">{initialLeads.filter(isRecentOpenedNoWebsiteLead).length}</span>
           </button>
 
           {/* Recent businesses with no listed website: an opportunity queue, not an opening-date claim. */}
@@ -1552,7 +1587,7 @@ export default function DashboardClient({
               <div>
                 <h3 className="text-xs font-semibold text-white">Add Single Prospect</h3>
                 <p className="text-xs text-[#c8c4bc70] mt-0.5">
-                  Directly queue a business for 6-dimensional audit and pitch generation.
+                  Add a business before contact details are known. Opening dates need a supporting source link; only save information from sources you may retain.
                 </p>
               </div>
 
@@ -1568,16 +1603,16 @@ export default function DashboardClient({
                 </div>
               )}
 
-              <form onSubmit={handleAddLead} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <form onSubmit={handleAddLead} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="text-[11px] text-[#c8c4bc70] block mb-1">Business Name *</label>
                   <input type="text" placeholder="e.g. Apex Plumbing" value={leadName} onChange={(e) => setLeadName(e.target.value)}
                     className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] focus:outline-none focus:border-[#8b3a2a]" required />
                 </div>
                 <div>
-                  <label className="text-[11px] text-[#c8c4bc70] block mb-1">Email Address *</label>
+                  <label className="text-[11px] text-[#c8c4bc70] block mb-1">Email Address (optional)</label>
                   <input type="email" placeholder="e.g. contact@apex.com" value={leadEmail} onChange={(e) => setLeadEmail(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] focus:outline-none focus:border-[#8b3a2a]" required />
+                    className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] focus:outline-none focus:border-[#8b3a2a]" />
                 </div>
                 <div>
                   <label className="text-[11px] text-[#c8c4bc70] block mb-1">Website URL</label>
@@ -1589,8 +1624,23 @@ export default function DashboardClient({
                   <input type="text" placeholder="e.g. Dallas, TX" value={leadCity} onChange={(e) => setLeadCity(e.target.value)}
                     className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] focus:outline-none focus:border-[#8b3a2a]" />
                 </div>
+                <div>
+                  <label className="text-[11px] text-[#c8c4bc70] block mb-1">Business/source page</label>
+                  <input type="url" placeholder="https://..." value={leadSourceUrl} onChange={(e) => setLeadSourceUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] focus:outline-none focus:border-[#8b3a2a]" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#c8c4bc70] block mb-1">Opening date (if evidenced)</label>
+                  <input type="date" value={leadOpeningDate} onChange={(e) => setLeadOpeningDate(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] focus:outline-none focus:border-[#8b3a2a]" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#c8c4bc70] block mb-1">Opening-date evidence URL</label>
+                  <input type="url" placeholder="Required when date is set" value={leadOpeningSourceUrl} onChange={(e) => setLeadOpeningSourceUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[#141414] border border-[#c8c4bc20] rounded-lg text-xs text-[#c8c4bc] placeholder-[#c8c4bc35] focus:outline-none focus:border-[#8b3a2a]" />
+                </div>
                 <div className="flex items-end">
-                  <button type="submit" disabled={leadLoading || !leadName || !leadEmail}
+                  <button type="submit" disabled={leadLoading || !leadName}
                     className="w-full py-1.5 px-4 rounded-lg text-xs font-medium bg-[#8b3a2a] hover:bg-[#9e4331] text-[#c8c4bc] transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
                     {leadLoading ? <span className="w-3 h-3 border-2 border-[#c8c4bc] border-t-transparent rounded-full animate-spin" /> : <span>+</span>}
                     <span>Add to Queue</span>
@@ -2164,6 +2214,21 @@ export default function DashboardClient({
               </div>
               <button onClick={() => setExpandedLeadId(null)} className="text-[#c8c4bc70] hover:text-white p-1 text-sm" aria-label="Close modal"><X size={14} /></button>
             </div>
+
+            {(selectedLead.lead_source_url || selectedLead.opening_date || selectedLead.opening_source_url) && (
+              <div className="rounded-lg border border-[#c8a44b]/20 bg-[#c8a44b]/5 px-3.5 py-3 text-xs">
+                <h4 className="text-[11px] font-medium text-white mb-2">Prospect provenance</h4>
+                <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-mono">
+                  {selectedLead.lead_source_url && (
+                    <a href={selectedLead.lead_source_url} target="_blank" rel="noopener noreferrer" className="text-[#c8a44b] hover:underline">Business/source page ↗</a>
+                  )}
+                  {selectedLead.opening_date && <span className="text-[#c8c4bc]">Opening date recorded: {selectedLead.opening_date.slice(0, 10)}</span>}
+                  {selectedLead.opening_source_url && (
+                    <a href={selectedLead.opening_source_url} target="_blank" rel="noopener noreferrer" className="text-[#c8a44b] hover:underline">Opening-date evidence ↗</a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Email Intelligence & Scraper Box */}
             <div className="bg-[#151515] border border-[#c8c4bc18] rounded-xl p-4 space-y-3">
@@ -2958,6 +3023,7 @@ export default function DashboardClient({
                     {statsModalType === 'total_dispatched' && 'All Dispatched Pitches & Follow-ups'}
                     {statsModalType === 'replies' && 'Inbound Replies & Client Responses'}
                     {statsModalType === 'recent_no_website' && 'Recently Found · No Website Listed'}
+                    {statsModalType === 'recent_opened_no_website' && 'Recent Openings · No Website Recorded'}
                   </h3>
                 </div>
                 <p className="text-xs text-[#c8c4bc70] mt-1">
@@ -2968,6 +3034,7 @@ export default function DashboardClient({
                   {statsModalType === 'total_dispatched' && 'Historical log of all initial outreach emails and automated follow-ups sent to date.'}
                   {statsModalType === 'replies' && 'Track and log positive responses from prospects to close high-ticket web design & SEO deals.'}
                   {statsModalType === 'recent_no_website' && 'First found by Coldstart in the last 30 days, with no website listed in discovery data. This does not prove the business is new or has no website—verify both before proposing a launch site.'}
+                  {statsModalType === 'recent_opened_no_website' && 'Opening dates have a saved evidence URL and fall within 180 days. No website URL is recorded, which is not proof that none exists; review both source and site status before outreach.'}
                 </p>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-center">
@@ -3006,6 +3073,7 @@ export default function DashboardClient({
                       if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                       if (statsModalType === 'replies') return Boolean(lead.replied_at)
                       if (statsModalType === 'recent_no_website') return isRecentNoWebsiteLead(lead)
+                      if (statsModalType === 'recent_opened_no_website') return isRecentOpenedNoWebsiteLead(lead)
                       return true
                     }).filter((lead) => {
                       if (!statsModalSearch) return true
@@ -3081,6 +3149,7 @@ export default function DashboardClient({
                     if (statsModalType === 'total_dispatched') return lead.status === 'sent' || lead.status === 'followed_up' || Boolean(lead.initial_sent_at)
                     if (statsModalType === 'replies') return Boolean(lead.replied_at)
                     if (statsModalType === 'recent_no_website') return isRecentNoWebsiteLead(lead)
+                    if (statsModalType === 'recent_opened_no_website') return isRecentOpenedNoWebsiteLead(lead)
                     return true
                   })
                   .filter((lead) => {

@@ -145,53 +145,79 @@ export async function POST(request: Request) {
     }
 
     if (action === 'add_lead') {
-      const { business_name, website, email, city } = body
-      if (!business_name || !business_name.trim()) {
+      const { business_name, website, email, city, source_url, opening_date, opening_source_url } = body
+      if (typeof business_name !== 'string' || !business_name.trim()) {
         return NextResponse.json({ error: 'Business name is required' }, { status: 400 })
       }
-      if (!email || !email.trim()) {
-        return NextResponse.json({ error: 'Email is required to send outreach' }, { status: 400 })
+      const validHttpUrl = (value: unknown): value is string => {
+        if (typeof value !== 'string' || value.length > 2048) return false
+        try {
+          const parsed = new URL(value)
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+        } catch {
+          return false
+        }
       }
 
       const trimmedName = business_name.trim()
-      const trimmedEmail = email.trim().toLowerCase()
-      if (!isValidBusinessEmail(trimmedEmail)) {
+      const trimmedEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
+      if (trimmedEmail && !isValidBusinessEmail(trimmedEmail)) {
         return NextResponse.json({ error: 'Enter a valid business email address.' }, { status: 400 })
       }
-      const trimmedWebsite = website?.trim() || null
-      const trimmedCity = city?.trim() || null
+      const trimmedWebsite = typeof website === 'string' && website.trim() ? website.trim() : null
+      const trimmedCity = typeof city === 'string' && city.trim() ? city.trim() : null
+      const trimmedSourceUrl = typeof source_url === 'string' && source_url.trim() ? source_url.trim() : null
+      const trimmedOpeningSourceUrl = typeof opening_source_url === 'string' && opening_source_url.trim() ? opening_source_url.trim() : null
+      const trimmedOpeningDate = typeof opening_date === 'string' && opening_date.trim() ? opening_date.trim() : null
 
-      // Check if this email is suppressed (bounced/complained before)
-      const suppressedCheck = await pool.query(
-        'SELECT email FROM suppressed_emails WHERE email = $1',
-        [trimmedEmail]
-      )
-      if (suppressedCheck.rows.length > 0) {
-        return NextResponse.json(
-          { error: 'This email address was previously suppressed (bounced or complained). Cannot add.' },
-          { status: 400 }
-        )
+      if (trimmedSourceUrl && !validHttpUrl(trimmedSourceUrl)) {
+        return NextResponse.json({ error: 'Source URL must be an HTTP or HTTPS URL.' }, { status: 400 })
+      }
+      if (trimmedOpeningSourceUrl && !validHttpUrl(trimmedOpeningSourceUrl)) {
+        return NextResponse.json({ error: 'Opening evidence URL must be an HTTP or HTTPS URL.' }, { status: 400 })
+      }
+      if (trimmedOpeningDate) {
+        const date = new Date(`${trimmedOpeningDate}T00:00:00.000Z`)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedOpeningDate) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== trimmedOpeningDate) {
+          return NextResponse.json({ error: 'Opening date must be a valid calendar date.' }, { status: 400 })
+        }
+        if (!trimmedOpeningSourceUrl) {
+          return NextResponse.json({ error: 'Add the source URL that supports the opening date.' }, { status: 400 })
+        }
       }
 
-      // Check for duplicate email in existing leads
-      const dupeCheck = await pool.query(
-        'SELECT id FROM leads WHERE lower(email) = $1 LIMIT 1',
-        [trimmedEmail]
-      )
-      if (dupeCheck.rows.length > 0) {
-        return NextResponse.json(
-          { error: 'A lead with this email already exists.' },
-          { status: 400 }
+      // Check if this email is suppressed (bounced/complained before)
+      if (trimmedEmail) {
+        const suppressedCheck = await pool.query(
+          'SELECT email FROM suppressed_emails WHERE email = $1',
+          [trimmedEmail]
         )
+        if (suppressedCheck.rows.length > 0) {
+          return NextResponse.json(
+            { error: 'This email address was previously suppressed (bounced or complained). Cannot add.' },
+            { status: 400 }
+          )
+        }
+
+        const dupeCheck = await pool.query(
+          'SELECT id FROM leads WHERE lower(email) = $1 LIMIT 1',
+          [trimmedEmail]
+        )
+        if (dupeCheck.rows.length > 0) {
+          return NextResponse.json(
+            { error: 'A lead with this email already exists.' },
+            { status: 400 }
+          )
+        }
       }
 
       const hasWebsite = Boolean(trimmedWebsite)
-      const status = hasWebsite ? 'new' : 'no_website'
+      const status = !trimmedEmail ? 'email_needed' : hasWebsite ? 'new' : 'no_website'
 
       await pool.query(
-        `INSERT INTO leads (business_name, address, website, email, status, seo_score)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [trimmedName, trimmedCity, trimmedWebsite, trimmedEmail, status, 20]
+        `INSERT INTO leads (business_name, address, website, email, status, seo_score, lead_source_url, opening_date, opening_source_url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [trimmedName, trimmedCity, trimmedWebsite, trimmedEmail || null, status, 20, trimmedSourceUrl, trimmedOpeningDate, trimmedOpeningSourceUrl]
       )
 
       return NextResponse.json({ success: true, status })
