@@ -56,7 +56,8 @@ async function claimLead(leadId?: string): Promise<ClaimedLead | null> {
          AND generation_policy_version = 'permission-v1'
          AND initial_approval_status = 'approved'
          AND send_uncertain_at IS NULL
-         AND email_verification_status = 'source_verified'
+         AND email_verification_status = 'operator_verified'
+         AND email_verified_at >= NOW() - INTERVAL '30 days'
          AND (seo_score IS NULL OR seo_score < $1)
          AND initial_sent_at IS NULL
          AND replied_at IS NULL

@@ -128,6 +128,12 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: 'This email address is suppressed.' }, { status: 400 })
     }
 
+    const contactIdentityChanged =
+      String(updatedEmail || '').trim().toLowerCase() !== String(current.email || '').trim().toLowerCase() ||
+      String(updatedName || '').trim().toLowerCase() !== String(current.business_name || '').trim().toLowerCase() ||
+      String(updatedWebsite || '').trim().toLowerCase() !== String(current.website || '').trim().toLowerCase() ||
+      String(updatedAddress || '').trim().toLowerCase() !== String(current.address || '').trim().toLowerCase()
+
     // Auto-transition: if a no_website or email_needed lead just received an email, move to scraped
     const hadNoEmail = !current.email || current.email.trim() === ''
     const nowHasEmail = updatedEmail && updatedEmail.trim() !== ''
@@ -143,10 +149,19 @@ export async function PATCH(request: Request) {
          website = $3,
          phone = $4,
          address = $5,
-         status = $6
+         status = $6,
+         email_verification_status = CASE WHEN $8 THEN CASE WHEN $2::text IS NULL OR $2::text = '' THEN 'unverified' ELSE 'needs_review' END ELSE email_verification_status END,
+         email_verified_at = CASE WHEN $8 THEN NULL ELSE email_verified_at END,
+         email_verification_method = CASE WHEN $8 THEN NULL ELSE email_verification_method END,
+         initial_approval_status = CASE WHEN $8 THEN 'pending' ELSE initial_approval_status END,
+         initial_approved_at = CASE WHEN $8 THEN NULL ELSE initial_approved_at END,
+         initial_approved_by = CASE WHEN $8 THEN NULL ELSE initial_approved_by END,
+         followup_approval_status = CASE WHEN $8 THEN 'pending' ELSE followup_approval_status END,
+         followup_approved_at = CASE WHEN $8 THEN NULL ELSE followup_approved_at END,
+         followup_approved_by = CASE WHEN $8 THEN NULL ELSE followup_approved_by END
        WHERE id = $7
        RETURNING *`,
-      [updatedName, updatedEmail, updatedWebsite, updatedPhone, updatedAddress, updatedStatus, leadId]
+      [updatedName, updatedEmail, updatedWebsite, updatedPhone, updatedAddress, updatedStatus, leadId, contactIdentityChanged]
     )
 
     const autoTransitioned = hadNoEmail && nowHasEmail && stuckStatuses.includes(current.status) && status === undefined
@@ -174,6 +189,62 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
     const { action, leadId, business_name, email, website, city } = body
+
+    if (action === 'confirm_contact_source') {
+      const evidenceUrl = typeof body.evidenceUrl === 'string' ? body.evidenceUrl.trim() : ''
+      const verificationNote = typeof body.verificationNote === 'string' ? body.verificationNote.trim() : ''
+      if (typeof leadId !== 'string' || !leadId) {
+        return NextResponse.json({ success: false, error: 'leadId is required.' }, { status: 400 })
+      }
+      if (body.recipientConfirmed !== true) {
+        return NextResponse.json({ success: false, error: 'Confirm that the exact email is currently published for this business.' }, { status: 400 })
+      }
+      if (evidenceUrl.length > 2048) {
+        return NextResponse.json({ success: false, error: 'Evidence URL is too long.' }, { status: 400 })
+      }
+      try {
+        const parsedEvidenceUrl = new URL(evidenceUrl)
+        if (parsedEvidenceUrl.protocol !== 'https:' && parsedEvidenceUrl.protocol !== 'http:') throw new Error('unsupported protocol')
+      } catch {
+        return NextResponse.json({ success: false, error: 'Provide the public HTTP(S) page where you confirmed this exact email address.' }, { status: 400 })
+      }
+      if (verificationNote.length < 12 || verificationNote.length > 1000) {
+        return NextResponse.json({ success: false, error: 'Add a brief verification note (12–1000 characters).' }, { status: 400 })
+      }
+
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const updated = await client.query(
+          `UPDATE leads
+           SET email_verification_status = 'operator_verified',
+               email_verified_at = NOW(), email_verification_method = 'operator-review',
+               email_source_url = $2,
+               initial_approval_status = 'pending', initial_approved_at = NULL, initial_approved_by = NULL,
+               followup_approval_status = 'pending', followup_approved_at = NULL, followup_approved_by = NULL
+           WHERE id = $1 AND email IS NOT NULL AND btrim(email) <> '' AND status <> 'unsubscribed'
+             AND NOT EXISTS (SELECT 1 FROM suppressed_emails WHERE email = lower(leads.email))
+           RETURNING id, business_name, email` ,
+          [leadId, evidenceUrl]
+        )
+        if (!updated.rows[0]) {
+          await client.query('ROLLBACK')
+          return NextResponse.json({ success: false, error: 'Lead is missing an email, is suppressed/unsubscribed, or was not found.' }, { status: 409 })
+        }
+        await client.query(
+          `INSERT INTO lead_interactions (lead_id, channel, outcome, note)
+           VALUES ($1, 'other', 'other', $2)`,
+          [leadId, `Operator confirmed exact published recipient ${updated.rows[0].email} on ${evidenceUrl}. Note: ${verificationNote}`]
+        )
+        await client.query('COMMIT')
+        return NextResponse.json({ success: true, message: `Contact source recorded for ${updated.rows[0].business_name}. No email was sent.` })
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => undefined)
+        throw error
+      } finally {
+        client.release()
+      }
+    }
 
     if (action === 'reaudit') {
       if (!leadId) {
@@ -286,7 +357,8 @@ export async function POST(request: Request) {
              AND generation_policy_version = 'permission-v1'
              AND generated_subject IS NOT NULL
              AND generated_body IS NOT NULL
-             AND email_verification_status = 'source_verified'
+             AND email_verification_status = 'operator_verified'
+             AND email_verified_at >= NOW() - INTERVAL '30 days'
              AND initial_sent_at IS NULL
              AND replied_at IS NULL
              AND status <> 'unsubscribed'

@@ -14,11 +14,12 @@ try {
       COUNT(DISTINCT lower(l.business_name))::int AS unique_businesses,
       COUNT(*) FILTER (WHERE l.status = 'new')::int AS new_leads,
       COUNT(*) FILTER (WHERE l.email IS NULL)::int AS without_email,
-      COUNT(*) FILTER (WHERE l.email_verification_status = 'source_verified')::int AS source_verified,
+      COUNT(*) FILTER (WHERE l.email_verification_status = 'source_verified')::int AS source_matched,
+      COUNT(*) FILTER (WHERE l.email_verification_status = 'operator_verified')::int AS operator_verified,
       COUNT(*) FILTER (WHERE l.email_verification_status = 'needs_review')::int AS needs_review,
       COUNT(*) FILTER (WHERE l.email_verification_status IS NULL OR l.email_verification_status = 'unverified')::int AS unverified,
       COUNT(*) FILTER (WHERE l.initial_approval_status <> 'pending' OR l.followup_approval_status <> 'pending')::int AS non_pending_approvals,
-      COUNT(*) FILTER (WHERE l.initial_approval_status = 'approved' AND l.email_verification_status <> 'source_verified')::int AS approved_without_verification,
+      COUNT(*) FILTER (WHERE l.initial_approval_status = 'approved' AND l.email_verification_status <> 'operator_verified')::int AS approved_without_operator_verification,
       COUNT(*) FILTER (WHERE l.initial_sent_at IS NOT NULL OR l.followup_sent_at IS NOT NULL)::int AS sent,
       COUNT(*) FILTER (WHERE l.last_audited_at IS NOT NULL)::int AS audited,
       COUNT(*) FILTER (WHERE l.audit_next_attempt_at > NOW())::int AS audit_retry_waiting,
@@ -34,7 +35,7 @@ try {
   const violations = []
   if (Number(summary.unique_businesses) < 30) violations.push(`expected at least 30 distinct businesses, found ${summary.unique_businesses}`)
   if (Number(summary.non_pending_approvals) !== 0) violations.push('one or more cohort leads have a non-pending approval')
-  if (Number(summary.approved_without_verification) !== 0) violations.push('one or more approved leads lack source verification')
+  if (Number(summary.approved_without_operator_verification) !== 0) violations.push('one or more approved leads lack operator verification')
   if (Number(summary.sent) !== 0) violations.push('one or more cohort leads have been sent')
 
   if (violations.length) {

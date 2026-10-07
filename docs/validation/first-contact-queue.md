@@ -8,6 +8,33 @@ These are permission requests, not audits or proposals. After sending, record an
 
 **Re-check status on 2026-10-06:** Solartricity remains **on hold**. Its official-site search result exposes `info@solartricty.com.ng`, while the stored contact and brand spelling differ. The directly retrievable page did not confirm the stored address. Do not contact by email until the business-controlled page and address are manually reconciled.
 
+## Ten-prospect desk refresh — 2026-10-07
+
+This is a desk review of retrievable content from the businesses' own domains on 2026-10-07. Search-index retrieval may be cached; it is not a mobile usability test, form submission, decision-maker check, or mailbox/delivery verification. No one was contacted. It updates the previous observations but does **not** clear any prospect to send.
+
+| Business | Current first-party observation | Decision / next manual check |
+|---|---|---|
+| Solartricity | Homepage currently lists quote/order routes, Port Harcourt address, phone, and `info@solartricty.com.ng` (the email domain spelling differs from `solartricity.com.ng`). | **Hold email.** Confirm address spelling and right recipient through the public phone/WhatsApp route; check the quote path on mobile. Do not call the email typo a defect without owner confirmation. |
+| Sombreiro Energy | Site lists solar design/installation, EPC, materials and energy trading, multiple recent project examples, consultation CTA, Port Harcourt address, phone and email. | Do not claim it lacks an enquiry path. Manual check whether consultation CTA opens a distinct, working solar-project route; otherwise drop from defect-led outreach. |
+| Toyah Energies | Contact page lists a Port Harcourt branch, business-development email/phone, form, and enquiries spanning solar, industrial projects, technical support and partnerships. | Strong operator/benchmark. Check the form on mobile; no specific defect established. |
+| Solar World Electric | Contact page offers consultation, phone, WhatsApp, same-working-day response, and five Port Harcourt branches. | Benchmark, not a generic repair prospect. Only proceed if a concrete route problem appears in a user test. |
+| Dayli Energy Solutions | First-party page lists a Port Harcourt office, products/order request process, WhatsApp, email and a contact form with stated support expectations. | Benchmark. A clear path is already described; test only if a specific mobile/order friction is observed. |
+| GoSolar Ng | First-party contact page lists Port Harcourt details, phone/email, solar calculator and a form with a stated one-business-day response. | Benchmark pending calculator-to-human handoff test. Do not pitch a missing enquiry route. |
+| Khariz Energy | Contact page lists Port Harcourt office details, email/phone, message form and a “Send to WhatsApp” action. | Existing handoff is visible. Test whether form fields survive the WhatsApp transition on a phone before raising any question. |
+| TECIL Solar | First-party site describes free assessment/quote, WhatsApp/phone, multiple Port Harcourt branches, product catalogue and years of operation. | Established operator/benchmark; no generic defect pitch. Needs a narrowly observed branch/enquiry issue to qualify. |
+| Rafrank Integrated | Solar page describes solar installation/maintenance/sales and points enquiries to the general contact page; page lists phone, address and `info@rafrankltd.com`. | **First manual-check candidate, not cleared.** Verify on phone whether the general contact path is intentionally shared and easy to use; then ask only whether a solar-specific handoff is desired. |
+| Goshenvilla | Contact page lists two public emails, phone numbers, Port Harcourt address and “Send a Request”; retrieved result also includes a conflicting Chicago/Illinois address fragment. | **Hold pending source reconciliation.** Check the live contact page and business-controlled location details; don't use the conflicting location fragment as a claim. |
+
+### First manual-check order
+
+1. **Rafrank** — check whether the solar-to-general-contact route is intentional and clear on mobile; if it is, do not pitch a repair.
+2. **Pet-Feb (additional candidate, outside the original ten)** — the current first-party site has an updated Port Harcourt office/contact section and a long enquiry form requesting several personal/location fields. Check on mobile whether all fields are actually required and whether a simpler first enquiry would be useful; do not imply that the form loses leads.
+3. **Solartricity** — resolve the public email's domain spelling by phone before considering email; verify quote path independently.
+
+The rest remain benchmark/hold until a specific friction is demonstrated. This refresh weakens the assumption that all ten are suitable for the ₦75,000 enquiry-path repair. Do not force the offer onto them; log objections and use warm introductions/referrals to find businesses that actually want help. The ₦75,000 fee remains an unapproved/unvalidated test in the offer draft, and no proposal has been made.
+
+Sources retrieved 2026-10-07: [Solartricity](https://www.solartricity.com.ng/), [Sombreiro Energy](https://sombreiroenergy.com/), [Toyah Energies contact](https://toyahenergies.com/contact), [Solar World Electric contact](https://www.solarworldelectric.com/contact.html), [Dayli Energy contact](https://www.daylienergy.com/contact), [GoSolar Ng contact](https://www.gosolar.ng/contact-us), [Khariz Energy contact](https://kharizenergy.com/contact/), [TECIL Solar branches](https://www.tecilsolar.com/branches), [Rafrank solar page](https://rafrankltd.com/solar.php), [Goshenvilla contact](https://goshenvilla.com/contact-us/), and [Pet-Feb](https://www.petfeb.com/).
+
 ## Source re-check — 2026-10-06
 
 This is a remote text/index review, not a device-specific mobile test or mailbox verification. A search/open result can be cached; re-open the business page yourself immediately before any contact. No prospect was contacted and no address was tested for delivery in this review.

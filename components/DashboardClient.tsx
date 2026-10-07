@@ -165,6 +165,14 @@ function isRecentOpenedNoWebsiteLead(lead: Lead): boolean {
   return Number.isFinite(openedAt) && openedAt <= now && openedAt >= now - 180 * 24 * 60 * 60 * 1000
 }
 
+const CONTACT_VERIFICATION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+
+function isContactVerificationFresh(lead: Lead): boolean {
+  if (lead.email_verification_status !== 'operator_verified' || !lead.email_verified_at) return false
+  const verifiedAt = new Date(lead.email_verified_at).getTime()
+  return Number.isFinite(verifiedAt) && Date.now() - verifiedAt <= CONTACT_VERIFICATION_MAX_AGE_MS
+}
+
 function getLeadNextAction(lead: Lead): string {
   if (lead.status === 'unsubscribed') return 'Do not contact'
   if (lead.status === 'send_uncertain') return 'Check mailbox before any retry'
@@ -172,7 +180,7 @@ function getLeadNextAction(lead: Lead): string {
   if (lead.audit_next_attempt_at) return 'Website audit retry scheduled'
   if (!lead.email) return lead.website ? 'Crawl website for email' : 'Add email or use phone'
   if (!lead.last_audited_at && lead.website) return 'Run website audit'
-  if (lead.email_verification_status !== 'source_verified') return 'Verify contact source before approval'
+  if (!isContactVerificationFresh(lead)) return 'Manually confirm current contact source before approval'
   if (!lead.generated_body) return 'Generate pitch for review'
   if (!lead.initial_sent_at && lead.generation_policy_version !== 'permission-v1') return 'Regenerate permission-first draft'
   if (!lead.initial_sent_at && lead.initial_approval_status !== 'approved') return 'Approve pitch for sending'
@@ -667,6 +675,31 @@ export default function DashboardClient({
       alert(err instanceof Error ? err.message : 'Pitch generation failed')
     } finally {
       setRegeneratingLeadId(null)
+    }
+  }
+
+  const handleConfirmContactSource = async (lead: Lead) => {
+    if (!lead.email) return
+    if (!confirm(`Open the current business-controlled source and confirm that this exact address (${lead.email}) is published for ${lead.business_name}. Continue only if the source supports that match. No email will be sent.`)) return
+    const evidenceUrl = window.prompt('Paste the public HTTP(S) page where you confirmed this exact address:')?.trim()
+    if (!evidenceUrl) return
+    const verificationNote = window.prompt('What on the page confirmed the business/address match? (12+ characters)')?.trim()
+    if (!verificationNote || verificationNote.length < 12) return
+    setSendingLeadId(lead.id)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'confirm_contact_source', leadId: lead.id, recipientConfirmed: true, evidenceUrl, verificationNote }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not record contact verification')
+      alert(data.message || 'Operator verification recorded. No email was sent.')
+      router.refresh()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Could not record contact verification')
+    } finally {
+      setSendingLeadId(null)
     }
   }
 
@@ -2289,7 +2322,7 @@ export default function DashboardClient({
                   ) : (
                     <span><Search size={14} /></span>
                   )}
-                  <span>{selectedLead.email ? 'Re-Scrape & Verify' : 'Scrape Email Now'}</span>
+                  <span>{selectedLead.email ? 'Re-scrape & find contact' : 'Scrape email now'}</span>
                 </button>
               </div>
 
@@ -2305,9 +2338,13 @@ export default function DashboardClient({
                   </div>
                   <div>
                     <span className="text-[#c8c4bc40]">Verification: </span>
-                    <span className={selectedLead.email_verification_status === 'source_verified' ? 'text-[#6dc86d]' : 'text-[#e8b85d]'}>
-                      {selectedLead.email_verification_status === 'source_verified'
-                        ? 'Published on linked source (delivery not checked)'
+                    <span className={isContactVerificationFresh(selectedLead) ? 'text-[#6dc86d]' : 'text-[#e8b85d]'}>
+                      {isContactVerificationFresh(selectedLead)
+                        ? `Operator checked source ${mounted ? new Date(selectedLead.email_verified_at!).toLocaleDateString() : ''} (delivery not checked)`
+                        : selectedLead.email_verification_status === 'operator_verified'
+                          ? 'Operator check is older than 30 days — recheck required'
+                        : selectedLead.email_verification_status === 'source_verified'
+                          ? 'Automated source match — operator review still required'
                         : selectedLead.email_verification_status === 'needs_review'
                           ? 'Needs source review'
                           : 'No source verification'}
@@ -2327,9 +2364,12 @@ export default function DashboardClient({
                   </div>
                 </div>
               )}
-              {selectedLead.email && selectedLead.email_verification_status !== 'source_verified' && (
-                <div className="rounded-md border border-[#e8b85d]/25 bg-[#e8b85d]/5 px-3 py-2 text-[11px] text-[#e8b85d]">
-                  Do not contact this address yet. Confirm the recipient on the business&apos;s current website or public business profile before recording or sending an attempt.
+              {selectedLead.email && !isContactVerificationFresh(selectedLead) && (
+                <div className="rounded-md border border-[#e8b85d]/25 bg-[#e8b85d]/5 px-3 py-2 text-[11px] text-[#e8b85d] space-y-2">
+                  <p>Do not contact this address yet. Automated confidence or a source link is not an operator check. Confirm the exact address on a current business-controlled page; this records the check but does not test mailbox delivery.</p>
+                  <button type="button" onClick={() => handleConfirmContactSource(selectedLead)} disabled={sendingLeadId === selectedLead.id} className="rounded border border-[#c8a44b]/40 px-2.5 py-1.5 text-[#c8a44b] disabled:opacity-40">
+                    {sendingLeadId === selectedLead.id ? 'Recording…' : 'I checked this contact source'}
+                  </button>
                 </div>
               )}
             </div>
