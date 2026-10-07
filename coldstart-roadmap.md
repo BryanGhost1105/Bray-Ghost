@@ -18,7 +18,7 @@ Nothing else is safe to build on top of until these are done.
 |---|---|---|
 | Buy a dedicated sending domain (WhoGoHost or similar) | All outreach and deliverability work depends on owning a domain, not sending from a personal/shared one | Low |
 | Set up SPF, DKIM, DMARC on that domain | Without this, cold email is close to guaranteed spam-foldered regardless of copy quality | Low–Medium |
-| Fix the send-timeout race condition (duplicate-send bug in sender logic) | Can currently double-email a prospect on a timeout — a real reputational risk on the very first real test | Medium |
+| ~~Fix the send-timeout race condition~~ — replaced with pre-send uncertainty marking, one-shot transport calls, and human reconciliation (implemented 2026-10-07) | A timeout or lost DB acknowledgement must never return a possibly delivered message to the automatic queue | Medium |
 | Add a hard manual-approval gate before every send (no auto-send path at all yet) | Safety net while every other piece is still unproven | Low–Medium |
 | Split the app into explicit "research only" and "send" modes | Lets you safely run discovery/audits on real businesses without any risk of accidental sends | Low |
 

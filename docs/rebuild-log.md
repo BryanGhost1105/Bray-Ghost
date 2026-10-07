@@ -209,3 +209,10 @@ If a gate fails, reduce scope or change the offer before adding features.
 
 - Fresh audit found the server-rendered dashboard query explicitly lists selected lead columns; added the three new provenance fields to that query so evidence reaches the client and recent-opening segment.
 - Re-ran `npm run lint` (0 errors, same 8 warnings), `npx tsc --noEmit`, `npm run build` (Next.js 16.3.0), and `git diff --check`; all passed. Database/provider access was not exercised. No import or message was sent.
+
+### 2026-10-07 — At-most-once send safety and source-fit review
+
+- Closed the initial-send retry race: Coldstart now persists `send_uncertain` and revokes approval immediately before contacting the provider. Gmail OAuth uses one non-retried API call with a transport timeout; SMTP has connection/greeting/socket timeouts. A successful provider response is recorded as sent only from that uncertain state. Failures/timeouts and post-provider DB errors remain blocked from automatic retry.
+- Added a 30-minute reconciliation hold. The operator must check the sending Gmail Sent folder, provide a note, and explicitly confirm no delivery. Coldstart logs this as a lead interaction, clears uncertainty, and returns the draft with approval revoked; a new review/approval is required. Approval and send-claim SQL both reject unresolved uncertainty. No live email was sent.
+- Researched zero/low-cost new-business sources and saved the evidence/decision in [`new-business-source-review-2026-10-07.md`](validation/new-business-source-review-2026-10-07.md). BusinessList is view-only/no-export and forbids automated extraction; FisherLeads finds new websites rather than website-absent businesses; OSM is the best licensing-fit candidate, but a bounded Port Harcourt coverage query timed out. No source was integrated and no candidate data imported.
+- `npm run lint` passed with 0 errors and 8 pre-existing warnings; `npx tsc --noEmit`, production build, and `git diff --check` passed. Live database transactions and provider behavior were not exercised, so no end-to-end send is claimed.

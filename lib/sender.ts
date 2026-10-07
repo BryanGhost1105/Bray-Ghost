@@ -1,5 +1,5 @@
 import { pool } from './db'
-import { MAX_SEO_SCORE_TO_SEND, MAX_INITIAL_SENDS_PER_DAY, GMAIL_TIMEOUT_MS } from './constants'
+import { MAX_SEO_SCORE_TO_SEND, MAX_INITIAL_SENDS_PER_DAY } from './constants'
 import { toHtml, sendDelayMs, sleep } from './emailFormat'
 import { getEmailSender } from './transporter'
 import { appendComplianceFooter, assertEmailComplianceConfiguration, complianceHeaders } from './compliance'
@@ -55,6 +55,7 @@ async function claimLead(leadId?: string): Promise<ClaimedLead | null> {
          AND status = 'generated'
          AND generation_policy_version = 'permission-v1'
          AND initial_approval_status = 'approved'
+         AND send_uncertain_at IS NULL
          AND email_verification_status = 'source_verified'
          AND (seo_score IS NULL OR seo_score < $1)
          AND initial_sent_at IS NULL
@@ -88,18 +89,30 @@ async function claimLead(leadId?: string): Promise<ClaimedLead | null> {
 
 async function recordSendFailure(lead: ClaimedLead, error: unknown): Promise<void> {
   const message = error instanceof Error ? error.message : String(error)
-  const uncertain = /send timeout/i.test(message)
   await pool.query(
     `UPDATE leads
-     SET status = CASE WHEN $2 THEN 'send_uncertain' WHEN COALESCE(send_attempts, 0) >= 3 THEN 'failed' ELSE 'generated' END,
+     SET status = CASE WHEN COALESCE(send_attempts, 0) >= 3 THEN 'failed' ELSE 'generated' END,
          send_claimed_at = NULL,
-         send_uncertain_at = CASE WHEN $2 THEN NOW() ELSE send_uncertain_at END,
-         initial_approval_status = CASE WHEN $2 THEN 'pending' ELSE initial_approval_status END,
-         next_attempt_at = CASE WHEN $2 OR COALESCE(send_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 hour' END,
+         next_attempt_at = CASE WHEN COALESCE(send_attempts, 0) >= 3 THEN NULL ELSE NOW() + INTERVAL '1 hour' END,
          send_last_error = $1
-     WHERE id = $3 AND send_claimed_at IS NOT NULL`,
-    [message.slice(0, 1000), uncertain, lead.id]
+     WHERE id = $2 AND send_claimed_at IS NOT NULL AND status = 'generated' AND initial_sent_at IS NULL`,
+    [message.slice(0, 1000), lead.id]
   )
+}
+
+async function markSendOutcomeUncertain(lead: ClaimedLead): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE leads
+     SET status = 'send_uncertain', send_uncertain_at = NOW(),
+         initial_approval_status = 'pending', initial_approved_at = NULL,
+         initial_approved_by = NULL, next_attempt_at = NULL,
+         send_last_error = 'A send attempt was started; verify the mailbox before retrying.'
+     WHERE id = $1 AND status = 'generated' AND initial_approval_status = 'approved'
+       AND send_claimed_at IS NOT NULL AND initial_sent_at IS NULL
+     RETURNING id`,
+    [lead.id]
+  )
+  return result.rowCount === 1
 }
 
 export async function sendSingleLead(leadId: string, skipDelay = false): Promise<SendOneResult> {
@@ -119,10 +132,30 @@ export async function sendSingleLead(leadId: string, skipDelay = false): Promise
     return { sent: false, rejected: `Lead ${lead.id}: missing send data.` }
   }
 
-  const body = appendComplianceFooter(lead.generated_body, lead.unsubscribe_token)
-
   try {
     if (!skipDelay) await sleep(sendDelayMs())
+  } catch (error) {
+    await recordSendFailure(lead, error)
+    return { sent: false, rejected: `Lead ${lead.id}: send stopped before contacting Gmail: ${error instanceof Error ? error.message : String(error)}` }
+  }
+
+  let body: string
+  try {
+    body = appendComplianceFooter(lead.generated_body, lead.unsubscribe_token)
+    // Persist a no-retry state before the external side effect. If the process
+    // crashes after Gmail accepts the message (or the confirmation DB write
+    // fails), this row cannot return to the automatic send queue.
+    const markedUncertain = await markSendOutcomeUncertain(lead)
+    if (!markedUncertain) {
+      return { sent: false, rejected: `Lead ${lead.id}: send claim or approval changed before Gmail was contacted.` }
+    }
+  } catch (error) {
+    await recordSendFailure(lead, error).catch(() => undefined)
+    return { sent: false, rejected: `Lead ${lead.id}: could not safely record send intent; Gmail was not contacted: ${error instanceof Error ? error.message : String(error)}` }
+  }
+
+  let emailResponse: Awaited<ReturnType<typeof transporter.sendMail>>
+  try {
     const emailPromise = transporter.sendMail({
       from: fromEmail,
       to: lead.email,
@@ -132,23 +165,34 @@ export async function sendSingleLead(leadId: string, skipDelay = false): Promise
       replyTo,
       headers: complianceHeaders(lead.unsubscribe_token),
     })
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Gmail send timeout; review before retrying.')), GMAIL_TIMEOUT_MS)
-    )
-    const emailResponse = await Promise.race([emailPromise, timeoutPromise])
-    const messageId = emailResponse.messageId || `gmail-${Date.now()}-${lead.id}`
-
+    emailResponse = await emailPromise
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     await pool.query(
+      `UPDATE leads SET send_last_error = $1
+       WHERE id = $2 AND status = 'send_uncertain' AND send_uncertain_at IS NOT NULL`,
+      [message.slice(0, 1000), lead.id]
+    ).catch(() => undefined)
+    return { sent: false, rejected: `Lead ${lead.id} (${lead.email}): provider outcome is uncertain; verify the mailbox before any retry. ${message}` }
+  }
+
+  const messageId = emailResponse.messageId || `gmail-${Date.now()}-${lead.id}`
+  try {
+    const recorded = await pool.query(
       `UPDATE leads
        SET initial_sent_at = NOW(), initial_provider_id = $1, status = 'sent',
-           send_claimed_at = NULL, next_attempt_at = NULL, send_last_error = NULL
-       WHERE id = $2 AND send_claimed_at IS NOT NULL`,
+           send_claimed_at = NULL, next_attempt_at = NULL, send_last_error = NULL,
+           send_uncertain_at = NULL
+       WHERE id = $2 AND send_claimed_at IS NOT NULL AND status = 'send_uncertain'
+         AND send_uncertain_at IS NOT NULL AND initial_sent_at IS NULL`,
       [messageId, lead.id]
     )
+    if (recorded.rowCount !== 1) {
+      return { sent: false, rejected: `Lead ${lead.id}: Gmail accepted the email (${messageId}), but local send confirmation was not recorded; verify the mailbox.` }
+    }
     return { sent: true, message: messageId }
   } catch (error) {
-    await recordSendFailure(lead, error)
-    return { sent: false, rejected: `Lead ${lead.id} (${lead.email}): ${error instanceof Error ? error.message : String(error)}` }
+    return { sent: false, rejected: `Lead ${lead.id}: Gmail accepted the email (${messageId}), but local send confirmation failed; verify the mailbox before any retry. ${error instanceof Error ? error.message : String(error)}` }
   }
 }
 

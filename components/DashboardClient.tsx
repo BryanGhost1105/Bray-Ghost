@@ -68,6 +68,7 @@ export interface Lead {
   followup_subject: string | null
   followup_body: string | null
   initial_sent_at: string | null
+  send_uncertain_at: string | null
   initial_opened_at: string | null
   followup_sent_at: string | null
   followup_opened_at: string | null
@@ -690,6 +691,28 @@ export default function DashboardClient({
       router.refresh()
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Approval update failed')
+    } finally {
+      setSendingLeadId(null)
+    }
+  }
+
+  const handleResolveSendUncertain = async (leadId: string) => {
+    if (!confirm('Only continue after checking the sending Gmail account and confirming this message was not delivered. This will return the draft for review and require fresh approval.')) return
+    const resolutionNote = window.prompt('Record what you checked (at least 12 characters). Do not include passwords or private account data.')
+    if (!resolutionNote || resolutionNote.trim().length < 12) return
+    setSendingLeadId(leadId)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resolve_send_uncertain', leadId, confirmedNotSent: true, resolutionNote }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not resolve uncertain send')
+      alert(data.message || 'Returned to draft review; approve again before another send.')
+      router.refresh()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Could not resolve uncertain send')
     } finally {
       setSendingLeadId(null)
     }
@@ -2230,6 +2253,14 @@ export default function DashboardClient({
               </div>
             )}
 
+            {selectedLead.status === 'send_uncertain' && (
+              <div className="rounded-lg border border-[#e8b85d]/30 bg-[#e8b85d]/5 px-3.5 py-3 text-xs space-y-2">
+                <p className="font-medium text-[#e8b85d]">Send outcome is uncertain. Coldstart will not retry it automatically.</p>
+                {selectedLead.send_uncertain_at && <p className="text-[11px] text-[#c8c4bc70]">Attempt marker (UTC): {new Date(selectedLead.send_uncertain_at).toISOString()}</p>}
+                <p className="text-[11px] text-[#c8c4bc90]">Wait at least 30 minutes, then check the sending Gmail account&apos;s Sent folder for this recipient and subject. Only resolve this as unsent if you have confirmed no message was delivered; the draft will need fresh review and approval.</p>
+              </div>
+            )}
+
             {/* Email Intelligence & Scraper Box */}
             <div className="bg-[#151515] border border-[#c8c4bc18] rounded-xl p-4 space-y-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -2692,7 +2723,7 @@ export default function DashboardClient({
                   </button>
                 )}
                 {/* Approval gate — approval never sends an unreviewed draft. */}
-                {selectedLead.email && selectedLead.generated_body && !selectedLead.initial_sent_at && (
+                {selectedLead.email && selectedLead.generated_body && !selectedLead.initial_sent_at && selectedLead.status !== 'send_uncertain' && (
                   <button
                     type="button"
                     onClick={() => handleSendSingle(selectedLead.id, selectedLead.initial_approval_status === 'approved')}
@@ -2706,6 +2737,17 @@ export default function DashboardClient({
                       <Send size={13} />
                     )}
                     <span>{selectedLead.initial_approval_status === 'approved' ? 'Revoke Approval' : 'Approve for Sending'}</span>
+                  </button>
+                )}
+                {selectedLead.status === 'send_uncertain' && (
+                  <button
+                    type="button"
+                    onClick={() => handleResolveSendUncertain(selectedLead.id)}
+                    disabled={sendingLeadId === selectedLead.id}
+                    className="px-3 py-1.5 bg-[#e8b85d]/10 hover:bg-[#e8b85d]/20 text-[#e8b85d] rounded-lg text-xs font-mono border border-[#e8b85d]/30 transition-colors disabled:opacity-40"
+                    title="Only use after the 30-minute hold and checking the Gmail Sent folder for no delivery"
+                  >
+                    {sendingLeadId === selectedLead.id ? 'Saving check…' : 'Confirm Not Sent & Re-review'}
                   </button>
                 )}
                 {/* Enrich Email — for leads missing an email */}

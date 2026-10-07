@@ -64,7 +64,7 @@ export default async function Page() {
                 generation_policy_version,
                 initial_approval_status, initial_approved_at, initial_approved_by,
                 followup_approval_status, followup_approved_at, followup_approved_by,
-                initial_sent_at, initial_opened_at, followup_sent_at, followup_opened_at,
+                initial_sent_at, send_uncertain_at, initial_opened_at, followup_sent_at, followup_opened_at,
                 replied_at, created_at, mobile_score, performance_score, design_score, ux_score,
                 technical_score, opportunity_score, outreach_angle, outreach_reason,
                 email_confidence, email_source, email_source_url, email_verification_status, email_verified_at, email_verification_method,

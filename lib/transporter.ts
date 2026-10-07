@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import { google } from 'googleapis'
 import { pool } from './db'
 import { decryptSecret } from './secret'
+import { GMAIL_TIMEOUT_MS } from './constants'
 
 export interface SendMailOptions {
   from?: string
@@ -130,33 +131,15 @@ export async function getEmailSender(): Promise<EmailSenderConfig> {
         sendMail: async (options: SendMailOptions) => {
           const raw = buildRawMimeMessage(options, fromEmail, replyTo)
 
-          // Retry up to 3 times on transient network / DNS errors like EAI_AGAIN
-          let lastErr: unknown
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              const res = await gmail.users.messages.send({
-                userId: 'me',
-                requestBody: {
-                  raw,
-                },
-              })
-              const messageId = res.data.id || `gmail-${Date.now()}`
-              return { messageId }
-            } catch (err: unknown) {
-              lastErr = err
-              const errMsg = err instanceof Error ? err.message : String(err)
-              const isTransient = errMsg.includes('EAI_AGAIN') || errMsg.includes('ETIMEDOUT') || errMsg.includes('ECONNRESET') || errMsg.includes('ENOTFOUND')
-
-              if (attempt < 3 && isTransient) {
-                // Wait before retrying
-                await new Promise((r) => setTimeout(r, attempt * 1000))
-                continue
-              }
-              break
-            }
-          }
-
-          throw lastErr
+          // Sending is not idempotent. Never retry automatically after a
+          // network error: Gmail may have accepted the first request before
+          // the client lost its response. A human must reconcile uncertainty.
+          const res = await gmail.users.messages.send(
+            { userId: 'me', requestBody: { raw } },
+            { retry: false, timeout: GMAIL_TIMEOUT_MS }
+          )
+          const messageId = res.data.id || `gmail-${Date.now()}`
+          return { messageId }
         },
       },
       fromEmail,
@@ -168,6 +151,9 @@ export async function getEmailSender(): Promise<EmailSenderConfig> {
   if (user && pass && pass.trim() !== '') {
     const nodeTransporter = nodemailer.createTransport({
       service: 'gmail',
+      connectionTimeout: GMAIL_TIMEOUT_MS,
+      greetingTimeout: GMAIL_TIMEOUT_MS,
+      socketTimeout: GMAIL_TIMEOUT_MS,
       auth: {
         user: user,
         pass: pass.trim(),

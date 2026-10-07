@@ -282,6 +282,7 @@ export async function POST(request: Request) {
                initial_approved_by = 'internal-operator'
            WHERE id = $1
              AND status = 'generated'
+             AND send_uncertain_at IS NULL
              AND generation_policy_version = 'permission-v1'
              AND generated_subject IS NOT NULL
              AND generated_body IS NOT NULL
@@ -331,6 +332,64 @@ export async function POST(request: Request) {
         success: true,
         message: `Approval revoked for ${result.rows[0].business_name}. No email was sent.`,
       })
+    }
+
+    if (action === 'resolve_send_uncertain') {
+      const { confirmedNotSent, resolutionNote } = body
+      if (typeof leadId !== 'string' || !leadId) {
+        return NextResponse.json({ success: false, error: 'leadId is required.' }, { status: 400 })
+      }
+      if (confirmedNotSent !== true || typeof resolutionNote !== 'string' || resolutionNote.trim().length < 12) {
+        return NextResponse.json({ success: false, error: 'Confirm you checked the sending mailbox and provide a short resolution note.' }, { status: 400 })
+      }
+      if (resolutionNote.length > 500) {
+        return NextResponse.json({ success: false, error: 'Resolution note must be 500 characters or fewer.' }, { status: 400 })
+      }
+
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const resolved = await client.query(
+          `UPDATE leads
+           SET status = 'generated', send_claimed_at = NULL, send_uncertain_at = NULL,
+               initial_approval_status = 'pending', initial_approved_at = NULL,
+               initial_approved_by = NULL, next_attempt_at = NULL,
+               send_last_error = 'Operator checked the mailbox and confirmed this attempt was not sent.'
+           WHERE id = $1 AND status = 'send_uncertain'
+             AND send_uncertain_at <= NOW() - INTERVAL '30 minutes'
+             AND initial_sent_at IS NULL
+           RETURNING business_name`,
+          [leadId]
+        )
+        if (!resolved.rows[0]) {
+          const unresolved = await client.query(
+            `SELECT 1 FROM leads
+             WHERE id = $1 AND status = 'send_uncertain' AND send_uncertain_at IS NOT NULL
+               AND initial_sent_at IS NULL`,
+            [leadId]
+          )
+          await client.query('ROLLBACK')
+          if (unresolved.rows.length > 0) {
+            return NextResponse.json({ success: false, error: 'Safety hold: wait 30 minutes after the attempt, then check Gmail Sent before resolving it.' }, { status: 409 })
+          }
+          return NextResponse.json({ success: false, error: 'No unresolved send attempt was found for this lead.' }, { status: 409 })
+        }
+        await client.query(
+          `INSERT INTO lead_interactions (lead_id, channel, outcome, note)
+           VALUES ($1, 'email', 'send_uncertain_resolved_unsent', $2)`,
+          [leadId, `Operator confirmed no delivery after checking the mailbox: ${resolutionNote.trim()}`]
+        )
+        await client.query('COMMIT')
+        return NextResponse.json({
+          success: true,
+          message: `${resolved.rows[0].business_name} is returned to draft review. Approval was revoked; review and approve again before a new send. No message was sent by this action.`,
+        })
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => undefined)
+        throw error
+      } finally {
+        client.release()
+      }
     }
 
     if (action === 'approve_followup' || action === 'revoke_followup') {
